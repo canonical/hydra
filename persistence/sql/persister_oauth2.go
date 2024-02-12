@@ -571,18 +571,21 @@ func (p *Persister) DeleteAccessTokens(ctx context.Context, clientID string) (er
 	)
 }
 
+// CreateDeviceCodeSession creates a new device code session and stores it in the database
 func (p *Persister) CreateDeviceCodeSession(ctx context.Context, signature string, requester fosite.Requester) (err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.CreateDeviceCodeSession")
 	defer otelx.End(span, &err)
 	return p.createSession(ctx, signature, requester, sqlTableDeviceCode)
 }
 
+// UpdateDeviceCodeSession updates a device code session
 func (p *Persister) UpdateDeviceCodeSession(ctx context.Context, signature string, requester fosite.Requester) (err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.UpdateDeviceCodeSession")
 	defer otelx.End(span, &err)
 	return p.updateSessionBySignature(ctx, signature, requester, sqlTableDeviceCode)
 }
 
+// GetDeviceCodeSession returns a device code session from the database
 func (p *Persister) GetDeviceCodeSession(ctx context.Context, signature string, session fosite.Session) (_ fosite.Requester, err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.GetDeviceCodeSession")
 	defer otelx.End(span, &err)
@@ -605,18 +608,21 @@ func (p *Persister) InvalidateDeviceCodeSession(ctx context.Context, signature s
 	)
 }
 
+// CreateUserCodeSession creates a new user code session and stores it in the database
 func (p *Persister) CreateUserCodeSession(ctx context.Context, signature string, requester fosite.Requester) (err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.CreateUserCodeSession")
 	defer otelx.End(span, &err)
 	return p.createSession(ctx, signature, requester, sqlTableUserCode)
 }
 
+// GetUserCodeSession returns a user code session from the database
 func (p *Persister) GetUserCodeSession(ctx context.Context, signature string, session fosite.Session) (_ fosite.Requester, err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.GetUserCodeSession")
 	defer otelx.End(span, &err)
 	return p.findSessionBySignature(ctx, signature, session, sqlTableUserCode)
 }
 
+// InvalidateUserCodeSession invalidates a user code session
 func (p *Persister) InvalidateUserCodeSession(ctx context.Context, signature string) (err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.InvalidateUserCodeSession")
 	defer otelx.End(span, &err)

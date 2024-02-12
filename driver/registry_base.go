@@ -411,6 +411,7 @@ func (m *RegistryBase) OAuth2HMACStrategy() *foauth2.HMACSHAStrategy {
 	return m.hmacs
 }
 
+// RFC8628HMACStrategy returns the rfc8628 strategy
 func (m *RegistryBase) RFC8628HMACStrategy() rfc8628.RFC8628CodeStrategy {
 	if m.deviceHmac != nil {
 		return m.deviceHmac

@@ -60,7 +60,7 @@ const (
 	RevocationPath   = "/oauth2/revoke"
 	DeleteTokensPath = "/oauth2/tokens" // #nosec G101
 
-	// Device Grant Handler
+	// Device authorization endpoint
 	DeviceAuthPath = "/oauth2/device/auth"
 )
 
