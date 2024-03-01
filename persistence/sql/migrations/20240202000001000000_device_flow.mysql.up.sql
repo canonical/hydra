@@ -50,8 +50,25 @@ ALTER TABLE hydra_oauth2_user_code ADD CONSTRAINT hydra_oauth2_user_code_challen
 ALTER TABLE hydra_oauth2_user_code ADD CONSTRAINT hydra_oauth2_user_code_client_id_fk FOREIGN KEY (client_id, nid) REFERENCES hydra_client(id, nid) ON DELETE CASCADE;
 ALTER TABLE hydra_oauth2_user_code ADD CONSTRAINT hydra_oauth2_user_code_nid_fk_idx FOREIGN KEY (nid) REFERENCES networks(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-ALTER TABLE hydra_oauth2_flow ADD device_verifier VARCHAR(40);
-ALTER TABLE hydra_oauth2_flow ADD device_challenge VARCHAR(255);
+CREATE TABLE IF NOT EXISTS hydra_oauth2_device_flow (
+    challenge             VARCHAR(255)                NOT NULL PRIMARY KEY,
+    nid                   CHAR(36)                    NULL,
+    request_url           text                        NOT NULL,
+    client_id             VARCHAR(255)                NOT NULL,
+    verifier              VARCHAR(40)                 NOT NULL,
+    csrf                  VARCHAR(40)                 NOT NULL,
+    requested_at          TIMESTAMP                   DEFAULT now() NOT NULL,
+    state                 INTEGER                     NOT NULL,
+    requested_scope       TEXT                        NOT NULL DEFAULT ('[]'),
+    requested_at_audience TEXT                        NOT NULL DEFAULT ('[]'),
+    was_handled    BOOL DEFAULT false          NOT NULL,
+    handled_at  TIMESTAMP                   NULL,
+    error                 TEXT                        NULL,
+    FOREIGN KEY (client_id, nid) REFERENCES hydra_client(id, nid) ON DELETE CASCADE
+);
 
-CREATE INDEX hydra_oauth2_flow_device_verifier_idx ON hydra_oauth2_flow (device_verifier, nid);
-CREATE INDEX hydra_oauth2_flow_device_challenge_idx ON hydra_oauth2_flow (device_challenge, nid);
+CREATE INDEX hydra_oauth2_device_flow_verifier_idx ON hydra_oauth2_device_flow (verifier, nid);
+CREATE INDEX hydra_oauth2_device_flow_challenge_idx ON hydra_oauth2_device_flow (challenge, nid);
+CREATE INDEX hydra_oauth2_device_flow_cid_idx ON hydra_oauth2_device_flow (client_id);
+ALTER TABLE hydra_oauth2_flow ADD COLUMN device_flow_id VARCHAR(255) NULL;
+ALTER TABLE hydra_oauth2_flow ADD CONSTRAINT hydra_oauth2_flow_device_flow_id_fk_idx FOREIGN KEY (device_flow_id) REFERENCES hydra_oauth2_device_flow(challenge) ON UPDATE RESTRICT ON DELETE CASCADE;
