@@ -15,11 +15,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/fosite"
 	hydra "github.com/ory/hydra-client-go/v2"
 	"github.com/ory/hydra/v2/client"
 	. "github.com/ory/hydra/v2/consent"
 	"github.com/ory/hydra/v2/flow"
 	"github.com/ory/hydra/v2/internal"
+	"github.com/ory/hydra/v2/oauth2"
 	"github.com/ory/hydra/v2/x"
 	"github.com/ory/x/contextx"
 	"github.com/ory/x/pointerx"
@@ -299,4 +301,275 @@ func TestGetLoginRequestWithDuplicateAccept(t *testing.T) {
 		require.NotNil(t, result2.RedirectTo)
 		require.Contains(t, result2.RedirectTo, "login_verifier")
 	})
+}
+
+func TestAcceptDeviceRequest(t *testing.T) {
+	ctx := context.Background()
+	challenge := "challenge"
+	requestURL := "https://hydra.example.com/" + oauth2.DeviceVerificationPath
+
+	conf := internal.NewConfigurationWithDefaults()
+	reg := internal.NewRegistryMemory(t, conf, &contextx.Default{})
+
+	cl := &client.Client{ID: "client"}
+	require.NoError(t, reg.ClientManager().CreateClient(ctx, cl))
+	f, err := reg.ConsentManager().CreateDeviceUserAuthRequest(ctx, &flow.DeviceUserAuthRequest{
+		Client:      cl,
+		ID:          challenge,
+		RequestURL:  requestURL,
+		RequestedAt: time.Now(),
+	})
+	require.NoError(t, err)
+	challenge, err = f.ToDeviceChallenge(ctx, reg)
+	require.NoError(t, err)
+
+	h := NewHandler(reg, conf)
+	r := x.NewRouterAdmin(conf.AdminURL)
+	h.SetRoutes(r)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	c := &http.Client{}
+
+	deviceRequest := fosite.NewDeviceRequest()
+	deviceRequest.Client = cl
+	userCode, sig, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+	require.NoError(t, err)
+	reg.OAuth2Storage().CreateUserCodeSession(ctx, sig, deviceRequest)
+	require.NoError(t, err)
+
+	acceptUserCode := &hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode}
+
+	// marshal User to json
+	acceptUserCodeJson, err := json.Marshal(acceptUserCode)
+	if err != nil {
+		panic(err)
+	}
+
+	// set the HTTP method, url, and request body
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/admin"+DevicePath+"/accept?challenge="+challenge, bytes.NewBuffer(acceptUserCodeJson))
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, resp.StatusCode)
+
+	var result flow.OAuth2RedirectTo
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+	require.NotNil(t, result.RedirectTo)
+	require.Contains(t, result.RedirectTo, requestURL)
+	require.Contains(t, result.RedirectTo, "device_verifier")
+}
+
+func TestAcceptDuplicateDeviceRequest(t *testing.T) {
+	ctx := context.Background()
+	challenge := "challenge"
+	requestURL := "https://hydra.example.com/" + oauth2.DeviceVerificationPath
+
+	conf := internal.NewConfigurationWithDefaults()
+	reg := internal.NewRegistryMemory(t, conf, &contextx.Default{})
+
+	cl := &client.Client{ID: "client"}
+	require.NoError(t, reg.ClientManager().CreateClient(ctx, cl))
+	f, err := reg.ConsentManager().CreateDeviceUserAuthRequest(ctx, &flow.DeviceUserAuthRequest{
+		Client:      cl,
+		ID:          challenge,
+		RequestURL:  requestURL,
+		RequestedAt: time.Now(),
+	})
+	require.NoError(t, err)
+	challenge, err = f.ToDeviceChallenge(ctx, reg)
+	require.NoError(t, err)
+
+	h := NewHandler(reg, conf)
+	r := x.NewRouterAdmin(conf.AdminURL)
+	h.SetRoutes(r)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	c := &http.Client{}
+
+	deviceRequest := fosite.NewDeviceRequest()
+	deviceRequest.Client = cl
+	userCode, sig, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+	require.NoError(t, err)
+	reg.OAuth2Storage().CreateUserCodeSession(ctx, sig, deviceRequest)
+	require.NoError(t, err)
+
+	acceptUserCode := &hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode}
+
+	// marshal User to json
+	acceptUserCodeJson, err := json.Marshal(acceptUserCode)
+	if err != nil {
+		panic(err)
+	}
+
+	// set the HTTP method, url, and request body
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/admin"+DevicePath+"/accept?challenge="+challenge, bytes.NewBuffer(acceptUserCodeJson))
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := c.Do(req)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, resp.StatusCode)
+
+	var result flow.OAuth2RedirectTo
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+	require.NotNil(t, result.RedirectTo)
+	require.Contains(t, result.RedirectTo, requestURL)
+	require.Contains(t, result.RedirectTo, "device_verifier")
+
+	// set the HTTP method, url, and request body
+	req2, err := http.NewRequest(http.MethodPut, ts.URL+"/admin"+DevicePath+"/accept?challenge="+challenge, bytes.NewBuffer(acceptUserCodeJson))
+	if err != nil {
+		panic(err)
+	}
+	resp2, err := c.Do(req2)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusNotFound, resp2.StatusCode)
+}
+
+func TestAcceptCodeDeviceRequestFailure(t *testing.T) {
+	ctx := context.Background()
+	challenge := "challenge"
+	requestURL := "https://hydra.example.com/" + oauth2.DeviceVerificationPath
+
+	conf := internal.NewConfigurationWithDefaults()
+	reg := internal.NewRegistryMemory(t, conf, &contextx.Default{})
+
+	cl := &client.Client{ID: "client"}
+	require.NoError(t, reg.ClientManager().CreateClient(ctx, cl))
+	f, err := reg.ConsentManager().CreateDeviceUserAuthRequest(ctx, &flow.DeviceUserAuthRequest{
+		Client:      cl,
+		ID:          challenge,
+		RequestURL:  requestURL,
+		RequestedAt: time.Now(),
+	})
+	require.NoError(t, err)
+	challenge, err = f.ToDeviceChallenge(ctx, reg)
+	require.NoError(t, err)
+
+	h := NewHandler(reg, conf)
+	r := x.NewRouterAdmin(conf.AdminURL)
+	h.SetRoutes(r)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	c := &http.Client{}
+
+	for _, tc := range []struct {
+		desc             string
+		getBody          func() ([]byte, error)
+		getURL           func() string
+		validateResponse func(*http.Response)
+	}{
+		{
+			desc: "random user_code, not persisted in the database",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode, _, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+				require.NoError(t, err)
+				return json.Marshal(&hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode})
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept?challenge=" + challenge
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusNotFound, resp.StatusCode)
+			},
+		},
+		{
+			desc: "empty user_code",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode := ""
+				return json.Marshal(&hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode})
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept?challenge=" + challenge
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+			},
+		},
+		{
+			desc: "empty challenge",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode, _, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+				require.NoError(t, err)
+				return json.Marshal(&hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode})
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept"
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+			},
+		},
+		{
+			desc: "random challenge",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode, _, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+				require.NoError(t, err)
+				return json.Marshal(&hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode})
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept?challenge=abc"
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusNotFound, resp.StatusCode)
+			},
+		},
+		{
+			desc: "extra fields",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode, _, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+				require.NoError(t, err)
+				ret := struct {
+					UserCode *string
+					Extra    string
+				}{
+					UserCode: &userCode,
+					Extra:    "extra",
+				}
+				return json.Marshal(ret)
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept?challenge=" + challenge
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+			},
+		},
+	} {
+		tc := tc
+		t.Run("case="+tc.desc, func(t *testing.T) {
+			acceptUserCodeJson, err := tc.getBody()
+			if err != nil {
+				panic(err)
+			}
+
+			// set the HTTP method, url, and request body
+			req, err := http.NewRequest(http.MethodPut, tc.getURL(), bytes.NewBuffer(acceptUserCodeJson))
+			if err != nil {
+				panic(err)
+			}
+
+			resp, err := c.Do(req)
+			require.NoError(t, err)
+			tc.validateResponse(resp)
+		})
+	}
+
 }
