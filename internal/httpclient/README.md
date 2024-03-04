@@ -92,6 +92,7 @@ Class | Method | HTTP request | Description
 *OAuth2Api* | [**AcceptOAuth2ConsentRequest**](docs/OAuth2Api.md#acceptoauth2consentrequest) | **Put** /admin/oauth2/auth/requests/consent/accept | Accept OAuth 2.0 Consent Request
 *OAuth2Api* | [**AcceptOAuth2LoginRequest**](docs/OAuth2Api.md#acceptoauth2loginrequest) | **Put** /admin/oauth2/auth/requests/login/accept | Accept OAuth 2.0 Login Request
 *OAuth2Api* | [**AcceptOAuth2LogoutRequest**](docs/OAuth2Api.md#acceptoauth2logoutrequest) | **Put** /admin/oauth2/auth/requests/logout/accept | Accept OAuth 2.0 Session Logout Request
+*OAuth2Api* | [**AcceptUserCodeRequest**](docs/OAuth2Api.md#acceptusercoderequest) | **Put** /admin/oauth2/auth/requests/device/accept | Accepts a device grant user_code request
 *OAuth2Api* | [**CreateOAuth2Client**](docs/OAuth2Api.md#createoauth2client) | **Post** /admin/clients | Create OAuth 2.0 Client
 *OAuth2Api* | [**DeleteOAuth2Client**](docs/OAuth2Api.md#deleteoauth2client) | **Delete** /admin/clients/{id} | Delete OAuth 2.0 Client
 *OAuth2Api* | [**DeleteOAuth2Token**](docs/OAuth2Api.md#deleteoauth2token) | **Delete** /admin/oauth2/tokens | Delete OAuth 2.0 Access Tokens from specific OAuth 2.0 Client
@@ -125,12 +126,14 @@ Class | Method | HTTP request | Description
 *OidcApi* | [**GetOidcUserInfo**](docs/OidcApi.md#getoidcuserinfo) | **Get** /userinfo | OpenID Connect Userinfo
 *OidcApi* | [**RevokeOidcSession**](docs/OidcApi.md#revokeoidcsession) | **Get** /oauth2/sessions/logout | OpenID Connect Front- and Back-channel Enabled Logout
 *OidcApi* | [**SetOidcDynamicClient**](docs/OidcApi.md#setoidcdynamicclient) | **Put** /oauth2/register/{id} | Set OAuth2 Client using OpenID Dynamic Client Registration
-*V0alpha2Api* | [**PerformOAuth2DeviceFlow**](docs/V0alpha2Api.md#performoauth2deviceflow) | **Post** /oauth2/device/auth | The OAuth 2.0 Device Authorize Endpoint
+*V0alpha2Api* | [**OAuth2DeviceFlow**](docs/V0alpha2Api.md#oauth2deviceflow) | **Post** /oauth2/device/auth | The OAuth 2.0 Device Authorize Endpoint
+*V0alpha2Api* | [**PerformOAuth2DeviceVerificationFlow**](docs/V0alpha2Api.md#performoauth2deviceverificationflow) | **Get** /oauth2/device/verify | OAuth 2.0 Device Verification Endpoint
 *WellknownApi* | [**DiscoverJsonWebKeys**](docs/WellknownApi.md#discoverjsonwebkeys) | **Get** /.well-known/jwks.json | Discover Well-Known JSON Web Keys
 
 
 ## Documentation For Models
 
+ - [AcceptDeviceUserCodeRequest](docs/AcceptDeviceUserCodeRequest.md)
  - [AcceptOAuth2ConsentRequest](docs/AcceptOAuth2ConsentRequest.md)
  - [AcceptOAuth2ConsentRequestSession](docs/AcceptOAuth2ConsentRequestSession.md)
  - [AcceptOAuth2LoginRequest](docs/AcceptOAuth2LoginRequest.md)
@@ -138,6 +141,7 @@ Class | Method | HTTP request | Description
  - [CreateVerifiableCredentialRequestBody](docs/CreateVerifiableCredentialRequestBody.md)
  - [CredentialSupportedDraft00](docs/CredentialSupportedDraft00.md)
  - [DeviceAuthorization](docs/DeviceAuthorization.md)
+ - [DeviceUserAuthRequest](docs/DeviceUserAuthRequest.md)
  - [ErrorOAuth2](docs/ErrorOAuth2.md)
  - [GenericError](docs/GenericError.md)
  - [GetVersion200Response](docs/GetVersion200Response.md)
@@ -175,6 +179,7 @@ Class | Method | HTTP request | Description
  - [VerifiableCredentialPrimingResponse](docs/VerifiableCredentialPrimingResponse.md)
  - [VerifiableCredentialProof](docs/VerifiableCredentialProof.md)
  - [VerifiableCredentialResponse](docs/VerifiableCredentialResponse.md)
+ - [VerifyUserCodeRequest](docs/VerifyUserCodeRequest.md)
  - [Version](docs/Version.md)
 
 
