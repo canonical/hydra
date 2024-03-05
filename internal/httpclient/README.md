@@ -125,6 +125,7 @@ Class | Method | HTTP request | Description
 *OidcApi* | [**GetOidcUserInfo**](docs/OidcApi.md#getoidcuserinfo) | **Get** /userinfo | OpenID Connect Userinfo
 *OidcApi* | [**RevokeOidcSession**](docs/OidcApi.md#revokeoidcsession) | **Get** /oauth2/sessions/logout | OpenID Connect Front- and Back-channel Enabled Logout
 *OidcApi* | [**SetOidcDynamicClient**](docs/OidcApi.md#setoidcdynamicclient) | **Put** /oauth2/register/{id} | Set OAuth2 Client using OpenID Dynamic Client Registration
+*V0alpha2Api* | [**PerformOAuth2DeviceFlow**](docs/V0alpha2Api.md#performoauth2deviceflow) | **Post** /oauth2/device/auth | The OAuth 2.0 Device Authorize Endpoint
 *WellknownApi* | [**DiscoverJsonWebKeys**](docs/WellknownApi.md#discoverjsonwebkeys) | **Get** /.well-known/jwks.json | Discover Well-Known JSON Web Keys
 
 
@@ -136,6 +137,7 @@ Class | Method | HTTP request | Description
  - [CreateJsonWebKeySet](docs/CreateJsonWebKeySet.md)
  - [CreateVerifiableCredentialRequestBody](docs/CreateVerifiableCredentialRequestBody.md)
  - [CredentialSupportedDraft00](docs/CredentialSupportedDraft00.md)
+ - [DeviceAuthorization](docs/DeviceAuthorization.md)
  - [ErrorOAuth2](docs/ErrorOAuth2.md)
  - [GenericError](docs/GenericError.md)
  - [GetVersion200Response](docs/GetVersion200Response.md)
