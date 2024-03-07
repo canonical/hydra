@@ -126,6 +126,40 @@ func MockLogoutRequest(key string, withClient bool, network string) (c *flow.Log
 	}
 }
 
+func MockDeviceRequest(key string, network string) (c *flow.DeviceUserAuthRequest, h *flow.HandledDeviceUserAuthRequest, f *flow.DeviceFlow) {
+	client := &client.Client{ID: "fk-client-" + key}
+	c = &flow.DeviceUserAuthRequest{
+		RequestedAt: time.Now().UTC().Add(-time.Minute),
+		Client:      client,
+		RequestURL:  "https://request-url/path" + key,
+		ID:          makeID("challenge", network, key),
+		Verifier:    makeID("verifier", network, key),
+		CSRF:        "csrf" + key,
+	}
+
+	f = flow.NewDeviceFlow(c)
+
+	var err = &flow.RequestDeniedError{
+		Name:        "error_name" + key,
+		Description: "error_description" + key,
+		Hint:        "error_hint,omitempty" + key,
+		Code:        100,
+		Debug:       "error_debug,omitempty" + key,
+		Valid:       true,
+	}
+
+	h = &flow.HandledDeviceUserAuthRequest{
+		ID:          makeID("challenge", network, key),
+		RequestedAt: time.Now().UTC().Add(-time.Minute),
+		Client:      client,
+		Error:       err,
+		Request:     c,
+		WasHandled:  false,
+	}
+
+	return c, h, f
+}
+
 func MockAuthRequest(key string, authAt bool, network string) (c *flow.LoginRequest, h *flow.HandledLoginRequest, f *flow.Flow) {
 	c = &flow.LoginRequest{
 		OpenIDConnectContext: &flow.OAuth2ConsentRequestOpenIDConnectContext{
@@ -451,6 +485,54 @@ func ManagerTests(deps Deps, m Manager, clientManager client.Manager, fositeMana
 
 					_, err = m.GetRememberedLoginSession(ctx, nil, tc.id)
 					require.Error(t, err)
+				})
+			}
+		})
+
+		t.Run("case=device-request", func(t *testing.T) {
+			for _, tc := range []struct {
+				key string
+			}{
+				{"1"},
+				{"2"},
+				{"3"},
+				{"4"},
+				{"5"},
+				{"6"},
+				{"7"},
+			} {
+				tc := tc
+				t.Run("key="+tc.key, func(t *testing.T) {
+					c, h, f := MockDeviceRequest(tc.key, network)
+					_ = clientManager.CreateClient(ctx, c.Client) // Ignore errors that are caused by duplication
+					deviceChallenge := x.Must(f.ToDeviceChallenge(ctx, deps))
+
+					_, err := m.GetDeviceUserAuthRequest(ctx, deviceChallenge)
+					require.Error(t, err)
+
+					f, err = m.CreateDeviceUserAuthRequest(ctx, c)
+					require.NoError(t, err)
+
+					deviceChallenge = x.Must(f.ToDeviceChallenge(ctx, deps))
+
+					got1, err := m.GetDeviceUserAuthRequest(ctx, deviceChallenge)
+					require.NoError(t, err)
+					assert.False(t, got1.WasHandled)
+					compareDeviceRequest(t, c, got1)
+
+					got1, err = m.HandleDeviceUserAuthRequest(ctx, f, deviceChallenge, h)
+					require.NoError(t, err)
+					compareDeviceRequest(t, c, got1)
+
+					DeviceVerifier := x.Must(f.ToDeviceVerifier(ctx, deps))
+
+					got2, err := m.VerifyAndInvalidateDeviceUserAuthRequest(ctx, DeviceVerifier)
+					require.NoError(t, err)
+					compareDeviceRequest(t, c, got2.Request)
+
+					deviceChallenge = x.Must(f.ToDeviceChallenge(ctx, deps))
+					_, err = m.GetDeviceUserAuthRequest(ctx, deviceChallenge)
+					require.NoError(t, err)
 				})
 			}
 		})
@@ -1124,6 +1206,14 @@ func compareAuthenticationRequest(t *testing.T, a, b *flow.LoginRequest) {
 	assert.EqualValues(t, a.CSRF, b.CSRF)
 	assert.EqualValues(t, a.Skip, b.Skip)
 	assert.EqualValues(t, a.SessionID, b.SessionID)
+	assert.EqualValues(t, a.DeviceFlowID, b.DeviceFlowID)
+}
+
+func compareDeviceRequest(t *testing.T, a, b *flow.DeviceUserAuthRequest) {
+	assert.EqualValues(t, a.Client.GetID(), b.Client.GetID())
+	assert.EqualValues(t, a.CSRF, b.CSRF)
+	assert.EqualValues(t, a.RequestURL, b.RequestURL)
+	assert.EqualValues(t, a.Verifier, b.Verifier)
 }
 
 func compareConsentRequest(t *testing.T, a, b *flow.OAuth2ConsentRequest) {
@@ -1138,4 +1228,5 @@ func compareConsentRequest(t *testing.T, a, b *flow.OAuth2ConsentRequest) {
 	assert.EqualValues(t, a.Skip, b.Skip)
 	assert.EqualValues(t, a.LoginChallenge, b.LoginChallenge)
 	assert.EqualValues(t, a.LoginSessionID, b.LoginSessionID)
+	assert.EqualValues(t, a.DeviceFlowID, b.DeviceFlowID)
 }
