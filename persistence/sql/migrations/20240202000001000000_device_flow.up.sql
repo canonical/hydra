@@ -45,6 +45,7 @@ CREATE INDEX hydra_oauth2_user_code_challenge_id_idx ON hydra_oauth2_user_code (
 CREATE TABLE IF NOT EXISTS hydra_oauth2_device_flow (
     challenge             VARCHAR(255)                NOT NULL PRIMARY KEY,
     nid                   UUID                        NULL,
+    request_id         VARCHAR(255) NOT NULL,
     request_url           TEXT                        NOT NULL,
     client_id             VARCHAR(255)                NOT NULL,
     verifier              VARCHAR(40)                 NOT NULL,
@@ -62,3 +63,4 @@ CREATE INDEX hydra_oauth2_device_flow_verifier_idx ON hydra_oauth2_device_flow (
 CREATE INDEX hydra_oauth2_device_flow_challenge_idx ON hydra_oauth2_device_flow (challenge, nid);
 CREATE INDEX hydra_oauth2_device_flow_cid_idx ON hydra_oauth2_device_flow (client_id);
 ALTER TABLE hydra_oauth2_flow ADD COLUMN device_flow_id VARCHAR(255) NULL;
+ALTER TABLE hydra_oauth2_flow ADD COLUMN device_code_request_id VARCHAR(255) NULL;
