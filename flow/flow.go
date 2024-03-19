@@ -203,6 +203,10 @@ type Flow struct {
 	LoginError           *RequestDeniedError `db:"login_error"`
 	LoginAuthenticatedAt sqlxx.NullTime      `db:"login_authenticated_at"`
 
+	// If this flow was initialized by a device authorization request, this value holds the id of the device flow.
+	DeviceFlowID        sqlxx.NullString `db:"device_flow_id"`
+	DeviceCodeRequestID sqlxx.NullString `db:"device_code_request_id"`
+
 	// ConsentChallengeID is the identifier ("authorization challenge") of the consent authorization request. It is used to
 	// identify the session.
 	//
@@ -259,6 +263,8 @@ func NewFlow(r *LoginRequest) *Flow {
 		LoginVerifier:          r.Verifier,
 		LoginCSRF:              r.CSRF,
 		LoginAuthenticatedAt:   r.AuthenticatedAt,
+		DeviceFlowID:           r.DeviceFlowID,
+		DeviceCodeRequestID:    r.DeviceRequestID,
 		RequestedAt:            r.RequestedAt,
 		State:                  FlowStateLoginInitialized,
 	}
@@ -428,6 +434,7 @@ func (f *Flow) GetConsentRequest() *OAuth2ConsentRequest {
 		RequestURL:             f.RequestURL,
 		LoginChallenge:         sqlxx.NullString(f.ID),
 		LoginSessionID:         f.SessionID,
+		DeviceFlowID:           f.DeviceFlowID,
 		ACR:                    f.ACR,
 		AMR:                    f.AMR,
 		Context:                f.Context,

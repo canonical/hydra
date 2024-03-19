@@ -4,11 +4,13 @@
 package oauth2
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/pborman/uuid"
 
+	"github.com/ory/hydra/v2/flow"
 	"github.com/ory/hydra/v2/x/events"
 	"github.com/ory/x/httprouterx"
 	"github.com/ory/x/josex"
@@ -44,6 +47,7 @@ const (
 	DefaultLoginPath      = "/oauth2/fallbacks/login"
 	DefaultConsentPath    = "/oauth2/fallbacks/consent"
 	DefaultPostLogoutPath = "/oauth2/fallbacks/logout/callback"
+	DefaultPostDevicePath = "/oauth2/fallbacks/device/done"
 	DefaultLogoutPath     = "/oauth2/fallbacks/logout"
 	DefaultErrorPath      = "/oauth2/fallbacks/error"
 	TokenPath             = "/oauth2/token" // #nosec G101
@@ -61,7 +65,8 @@ const (
 	DeleteTokensPath = "/oauth2/tokens" // #nosec G101
 
 	// Device authorization endpoint
-	DeviceAuthPath = "/oauth2/device/auth"
+	DeviceAuthPath         = "/oauth2/device/auth"
+	DeviceVerificationPath = "/oauth2/device/verify"
 )
 
 type Handler struct {
@@ -94,6 +99,12 @@ func (h *Handler) SetRoutes(admin *httprouterx.RouterAdmin, public *httprouterx.
 		http.StatusOK,
 		config.KeyLogoutRedirectURL,
 	))
+	public.GET(DefaultPostDevicePath, h.fallbackHandler(
+		"You successfully authenticated on your device!",
+		"The Default Post Device URL is not set which is why you are seeing this fallback page. Your device login request however succeeded.",
+		http.StatusOK,
+		config.KeyDeviceDoneURL,
+	))
 	public.GET(DefaultErrorPath, h.DefaultErrorHandler)
 
 	public.Handler("OPTIONS", RevocationPath, corsMiddleware(http.HandlerFunc(h.handleOptions)))
@@ -107,7 +118,8 @@ func (h *Handler) SetRoutes(admin *httprouterx.RouterAdmin, public *httprouterx.
 	public.Handler("OPTIONS", VerifiableCredentialsPath, corsMiddleware(http.HandlerFunc(h.handleOptions)))
 	public.Handler("POST", VerifiableCredentialsPath, corsMiddleware(http.HandlerFunc(h.createVerifiableCredential)))
 
-	public.Handler("POST", DeviceAuthPath, http.HandlerFunc(h.performOAuth2DeviceFlow))
+	public.Handler("POST", DeviceAuthPath, http.HandlerFunc(h.oAuth2DeviceFlow))
+	public.GET(DeviceVerificationPath, h.performOAuth2DeviceVerificationFlow)
 
 	admin.POST(IntrospectPath, h.introspectOAuth2Token)
 	admin.DELETE(DeleteTokensPath, h.deleteOAuth2Token)
@@ -692,11 +704,66 @@ func (h *Handler) getOidcUserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// swagger:route GET /oauth2/device/verify v0alpha2 performOAuth2DeviceVerificationFlow
+//
+// # OAuth 2.0 Device Verification Endpoint
+//
+// This is the device user verification endpoint. The user is redirected her when trying to login using the device flow.
+//
+//	Consumes:
+//	- application/x-www-form-urlencoded
+//
+//	Schemes: http, https
+//
+//	Responses:
+//	  302: emptyResponse
+//	  default: errorOAuth2
+func (h *Handler) performOAuth2DeviceVerificationFlow(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	ctx := r.Context()
+
+	consentSession, flow, err := h.r.ConsentStrategy().HandleOAuth2DeviceAuthorizationRequest(ctx, w, r)
+	if errors.Is(err, consent.ErrAbortOAuth2Request) {
+		x.LogAudit(r, nil, h.r.AuditLogger())
+		// do nothing
+		return
+	} else if e := &(fosite.RFC6749Error{}); errors.As(err, &e) {
+		x.LogAudit(r, err, h.r.AuditLogger())
+		h.r.Writer().WriteError(w, r, err)
+		return
+	} else if err != nil {
+		x.LogError(r, err, h.r.Logger())
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+
+	req := fosite.NewDeviceRequest()
+	req.Client = consentSession.ConsentRequest.Client
+	session, err := h.updateSessionWithRequest(ctx, consentSession, flow, r, req)
+	if err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+
+	req.SetSession(session)
+	// We update the device_code session with the claims that the user gave consent for, this
+	// marks it as ready to be used for the token endpoint
+	err = h.r.OAuth2Storage().UpdateDeviceCodeSessionByRequestID(ctx, flow.DeviceCodeRequestID.String(), req)
+	if err != nil {
+		x.LogError(r, err, h.r.Logger())
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
+
+	http.Redirect(w, r, urlx.SetQuery(h.c.DeviceDoneURL(ctx), url.Values{"consent_verifier": {string(flow.ConsentVerifier)}}).String(), http.StatusFound)
+}
+
 // OAuth2 Device Flow
 //
 // # Ory's OAuth 2.0 Device Authorization API
 //
 // swagger:model deviceAuthorization
+//
+//lint:ignore U1000 Used to generate Swagger and OpenAPI definitions
 type deviceAuthorization struct {
 	// The device verification code.
 	//
@@ -735,7 +802,7 @@ type deviceAuthorization struct {
 	Interval int `json:"interval"`
 }
 
-// swagger:route POST /oauth2/device/auth v0alpha2 performOAuth2DeviceFlow
+// swagger:route POST /oauth2/device/auth v0alpha2 oAuth2DeviceFlow
 //
 // # The OAuth 2.0 Device Authorize Endpoint
 //
@@ -752,8 +819,9 @@ type deviceAuthorization struct {
 //	Responses:
 //	  200: deviceAuthorization
 //	  default: errorOAuth2
-func (h *Handler) performOAuth2DeviceFlow(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) oAuth2DeviceFlow(w http.ResponseWriter, r *http.Request) {
 	var ctx = r.Context()
+
 	request, err := h.r.OAuth2Provider().NewDeviceRequest(ctx, r)
 	if err != nil {
 		h.r.OAuth2Provider().WriteAccessError(ctx, w, request, err)
@@ -1138,7 +1206,7 @@ func (h *Handler) oAuth2Authorize(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	session, flow, err := h.r.ConsentStrategy().HandleOAuth2AuthorizationRequest(ctx, w, r, authorizeRequest)
+	acceptConsentSession, flow, err := h.r.ConsentStrategy().HandleOAuth2AuthorizationRequest(ctx, w, r, authorizeRequest)
 	if errors.Is(err, consent.ErrAbortOAuth2Request) {
 		x.LogAudit(r, nil, h.r.AuditLogger())
 		// do nothing
@@ -1153,81 +1221,15 @@ func (h *Handler) oAuth2Authorize(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	for _, scope := range session.GrantedScope {
-		authorizeRequest.GrantScope(scope)
-	}
-
-	for _, audience := range session.GrantedAudience {
-		authorizeRequest.GrantAudience(audience)
-	}
-
-	openIDKeyID, err := h.r.OpenIDJWTStrategy().GetPublicKeyID(ctx)
+	authorizeRequest.SetID(acceptConsentSession.ID)
+	session, err := h.updateSessionWithRequest(ctx, acceptConsentSession, flow, r, authorizeRequest)
 	if err != nil {
-		x.LogError(r, err, h.r.Logger())
 		h.writeAuthorizeError(w, r, authorizeRequest, err)
 		return
 	}
-
-	var accessTokenKeyID string
-	if h.c.AccessTokenStrategy(r.Context(), client.AccessTokenStrategySource(authorizeRequest.GetClient())) == "jwt" {
-		accessTokenKeyID, err = h.r.AccessTokenJWTStrategy().GetPublicKeyID(ctx)
-		if err != nil {
-			x.LogError(r, err, h.r.Logger())
-			h.writeAuthorizeError(w, r, authorizeRequest, err)
-			return
-		}
-	}
-
-	obfuscatedSubject, err := h.r.ConsentStrategy().ObfuscateSubjectIdentifier(ctx, authorizeRequest.GetClient(), session.ConsentRequest.Subject, session.ConsentRequest.ForceSubjectIdentifier)
-	if e := &(fosite.RFC6749Error{}); errors.As(err, &e) {
-		x.LogAudit(r, err, h.r.AuditLogger())
-		h.writeAuthorizeError(w, r, authorizeRequest, err)
-		return
-	} else if err != nil {
-		x.LogError(r, err, h.r.Logger())
-		h.writeAuthorizeError(w, r, authorizeRequest, err)
-		return
-	}
-
-	authorizeRequest.SetID(session.ID)
-	claims := &jwt.IDTokenClaims{
-		Subject:                             obfuscatedSubject,
-		Issuer:                              h.c.IssuerURL(ctx).String(),
-		AuthTime:                            time.Time(session.AuthenticatedAt),
-		RequestedAt:                         session.RequestedAt,
-		Extra:                               session.Session.IDToken,
-		AuthenticationContextClassReference: session.ConsentRequest.ACR,
-		AuthenticationMethodsReferences:     session.ConsentRequest.AMR,
-
-		// These are required for work around https://github.com/ory/fosite/issues/530
-		Nonce:    authorizeRequest.GetRequestForm().Get("nonce"),
-		Audience: []string{authorizeRequest.GetClient().GetID()},
-		IssuedAt: time.Now().Truncate(time.Second).UTC(),
-
-		// This is set by the fosite strategy
-		// ExpiresAt:   time.Now().Add(h.IDTokenLifespan).UTC(),
-	}
-	claims.Add("sid", session.ConsentRequest.LoginSessionID)
 
 	// done
-	response, err := h.r.OAuth2Provider().NewAuthorizeResponse(ctx, authorizeRequest, &Session{
-		DefaultSession: &openid.DefaultSession{
-			Claims: claims,
-			Headers: &jwt.Headers{Extra: map[string]interface{}{
-				// required for lookup on jwk endpoint
-				"kid": openIDKeyID,
-			}},
-			Subject: session.ConsentRequest.Subject,
-		},
-		Extra:                 session.Session.AccessToken,
-		KID:                   accessTokenKeyID,
-		ClientID:              authorizeRequest.GetClient().GetID(),
-		ConsentChallenge:      session.ID,
-		ExcludeNotBeforeClaim: h.c.ExcludeNotBeforeClaim(ctx),
-		AllowedTopLevelClaims: h.c.AllowedTopLevelClaims(ctx),
-		MirrorTopLevelClaims:  h.c.MirrorTopLevelClaims(ctx),
-		Flow:                  flow,
-	})
+	response, err := h.r.OAuth2Provider().NewAuthorizeResponse(ctx, authorizeRequest, session)
 	if err != nil {
 		x.LogError(r, err, h.r.Logger())
 		h.writeAuthorizeError(w, r, authorizeRequest, err)
@@ -1296,6 +1298,80 @@ func (h *Handler) writeAuthorizeError(w http.ResponseWriter, r *http.Request, ar
 	}
 
 	h.r.OAuth2Provider().WriteAuthorizeError(r.Context(), w, ar, err)
+}
+
+// updateSessionWithRequest takes a session and a fosite.request as input and returns a new session.
+// If any errors occur, they are logged.
+func (h *Handler) updateSessionWithRequest(ctx context.Context, session *flow.AcceptOAuth2ConsentRequest, flow *flow.Flow, r *http.Request, request fosite.Requester) (*Session, error) {
+	for _, scope := range session.GrantedScope {
+		request.GrantScope(scope)
+	}
+
+	for _, audience := range session.GrantedAudience {
+		request.GrantAudience(audience)
+	}
+
+	openIDKeyID, err := h.r.OpenIDJWTStrategy().GetPublicKeyID(ctx)
+	if err != nil {
+		x.LogError(r, err, h.r.Logger())
+		return nil, err
+	}
+
+	var accessTokenKeyID string
+	if h.c.AccessTokenStrategy(ctx, client.AccessTokenStrategySource(request.GetClient())) == "jwt" {
+		accessTokenKeyID, err = h.r.AccessTokenJWTStrategy().GetPublicKeyID(ctx)
+		if err != nil {
+			x.LogError(r, err, h.r.Logger())
+			return nil, err
+		}
+	}
+
+	obfuscatedSubject, err := h.r.ConsentStrategy().ObfuscateSubjectIdentifier(ctx, request.GetClient(), session.ConsentRequest.Subject, session.ConsentRequest.ForceSubjectIdentifier)
+	if e := &(fosite.RFC6749Error{}); errors.As(err, &e) {
+		x.LogAudit(r, err, h.r.AuditLogger())
+		return nil, err
+	} else if err != nil {
+		x.LogError(r, err, h.r.Logger())
+		return nil, err
+	}
+
+	claims := &jwt.IDTokenClaims{
+		Subject:                             obfuscatedSubject,
+		Issuer:                              h.c.IssuerURL(ctx).String(),
+		AuthTime:                            time.Time(session.AuthenticatedAt),
+		RequestedAt:                         session.RequestedAt,
+		Extra:                               session.Session.IDToken,
+		AuthenticationContextClassReference: session.ConsentRequest.ACR,
+		AuthenticationMethodsReferences:     session.ConsentRequest.AMR,
+
+		// These are required for work around https://github.com/ory/fosite/issues/530
+		Nonce:    request.GetRequestForm().Get("nonce"),
+		Audience: []string{request.GetClient().GetID()},
+		IssuedAt: time.Now().Truncate(time.Second).UTC(),
+
+		// This is set by the fosite strategy
+		// ExpiresAt:   time.Now().Add(h.IDTokenLifespan).UTC(),
+	}
+	claims.Add("sid", session.ConsentRequest.LoginSessionID)
+
+	return &Session{
+		DefaultSession: &openid.DefaultSession{
+			Claims: claims,
+			Headers: &jwt.Headers{Extra: map[string]interface{}{
+				// required for lookup on jwk endpoint
+				"kid": openIDKeyID,
+			}},
+			Subject: session.ConsentRequest.Subject,
+		},
+		Extra:                 session.Session.AccessToken,
+		KID:                   accessTokenKeyID,
+		ClientID:              request.GetClient().GetID(),
+		ConsentChallenge:      session.ID,
+		ExcludeNotBeforeClaim: h.c.ExcludeNotBeforeClaim(ctx),
+		AllowedTopLevelClaims: h.c.AllowedTopLevelClaims(ctx),
+		MirrorTopLevelClaims:  h.c.MirrorTopLevelClaims(ctx),
+		Flow:                  flow,
+	}, nil
 }
 
 func (h *Handler) logOrAudit(err error, r *http.Request) {

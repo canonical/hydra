@@ -6,6 +6,8 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **Challenge** | **string** | ID is the identifier (\&quot;login challenge\&quot;) of the login request. It is used to identify the session. | 
 **Client** | [**OAuth2Client**](OAuth2Client.md) |  | 
+**DeviceFlowId** | Pointer to **string** | DeviceFlowID is the device flow ID that initiated this authentication flow. | [optional] 
+**DeviceRequestId** | Pointer to **string** |  | [optional] 
 **OidcContext** | Pointer to [**OAuth2ConsentRequestOpenIDConnectContext**](OAuth2ConsentRequestOpenIDConnectContext.md) |  | [optional] 
 **RequestUrl** | **string** | RequestURL is the original OAuth 2.0 Authorization URL requested by the OAuth 2.0 client. It is the URL which initiates the OAuth 2.0 Authorization Code or OAuth 2.0 Implicit flow. This URL is typically not needed, but might come in handy if you want to deal with additional request parameters. | 
 **RequestedAccessTokenAudience** | Pointer to **[]string** |  | [optional] 
@@ -72,6 +74,56 @@ and a boolean to check if the value has been set.
 
 SetClient sets Client field to given value.
 
+
+### GetDeviceFlowId
+
+`func (o *OAuth2LoginRequest) GetDeviceFlowId() string`
+
+GetDeviceFlowId returns the DeviceFlowId field if non-nil, zero value otherwise.
+
+### GetDeviceFlowIdOk
+
+`func (o *OAuth2LoginRequest) GetDeviceFlowIdOk() (*string, bool)`
+
+GetDeviceFlowIdOk returns a tuple with the DeviceFlowId field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetDeviceFlowId
+
+`func (o *OAuth2LoginRequest) SetDeviceFlowId(v string)`
+
+SetDeviceFlowId sets DeviceFlowId field to given value.
+
+### HasDeviceFlowId
+
+`func (o *OAuth2LoginRequest) HasDeviceFlowId() bool`
+
+HasDeviceFlowId returns a boolean if a field has been set.
+
+### GetDeviceRequestId
+
+`func (o *OAuth2LoginRequest) GetDeviceRequestId() string`
+
+GetDeviceRequestId returns the DeviceRequestId field if non-nil, zero value otherwise.
+
+### GetDeviceRequestIdOk
+
+`func (o *OAuth2LoginRequest) GetDeviceRequestIdOk() (*string, bool)`
+
+GetDeviceRequestIdOk returns a tuple with the DeviceRequestId field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetDeviceRequestId
+
+`func (o *OAuth2LoginRequest) SetDeviceRequestId(v string)`
+
+SetDeviceRequestId sets DeviceRequestId field to given value.
+
+### HasDeviceRequestId
+
+`func (o *OAuth2LoginRequest) HasDeviceRequestId() bool`
+
+HasDeviceRequestId returns a boolean if a field has been set.
 
 ### GetOidcContext
 

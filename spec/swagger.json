@@ -891,6 +891,55 @@
         }
       }
     },
+    "/admin/oauth2/auth/requests/device/accept": {
+      "put": {
+        "description": "Accepts a device grant user_code request",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "oAuth2"
+        ],
+        "summary": "Accepts a device grant user_code request",
+        "operationId": "acceptUserCodeRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "device_challenge",
+            "in": "query",
+            "required": true
+          },
+          {
+            "name": "Body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/acceptDeviceUserCodeRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "oAuth2RedirectTo",
+            "schema": {
+              "$ref": "#/definitions/oAuth2RedirectTo"
+            }
+          },
+          "default": {
+            "description": "errorOAuth2",
+            "schema": {
+              "$ref": "#/definitions/errorOAuth2"
+            }
+          }
+        }
+      }
+    },
     "/admin/oauth2/auth/requests/login": {
       "get": {
         "description": "When an authorization code, hybrid, or implicit OAuth 2.0 Flow is initiated, Ory asks the login provider\nto authenticate the subject and then tell the Ory OAuth2 Service about it.\n\nPer default, the login provider is Ory itself. You may use a different login provider which needs to be a web-app\nyou write and host, and it must be able to authenticate (\"show the subject a login screen\")\na subject (in OAuth2 the proper name for subject is \"resource owner\").\n\nThe authentication challenge is appended to the login provider URL to which the subject's user-agent (browser) is redirected to. The login\nprovider uses that challenge to fetch information on the OAuth2 request and then accept or reject the requested authentication process.",
@@ -1727,13 +1776,41 @@
           "v0alpha2"
         ],
         "summary": "The OAuth 2.0 Device Authorize Endpoint",
-        "operationId": "performOAuth2DeviceFlow",
+        "operationId": "oAuth2DeviceFlow",
         "responses": {
           "200": {
             "description": "deviceAuthorization",
             "schema": {
               "$ref": "#/definitions/deviceAuthorization"
             }
+          },
+          "default": {
+            "description": "errorOAuth2",
+            "schema": {
+              "$ref": "#/definitions/errorOAuth2"
+            }
+          }
+        }
+      }
+    },
+    "/oauth2/device/verify": {
+      "get": {
+        "description": "This is the device user verification endpoint. The user is redirected her when trying to login using the device flow.",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "v0alpha2"
+        ],
+        "summary": "OAuth 2.0 Device Verification Endpoint",
+        "operationId": "performOAuth2DeviceVerificationFlow",
+        "responses": {
+          "302": {
+            "$ref": "#/responses/emptyResponse"
           },
           "default": {
             "description": "errorOAuth2",
@@ -2150,6 +2227,35 @@
       }
     },
     "DefaultError": {},
+    "DeviceUserAuthRequest": {
+      "type": "object",
+      "title": "Contains information on an ongoing device grant request.",
+      "required": [
+        "challenge"
+      ],
+      "properties": {
+        "challenge": {
+          "description": "ID is the identifier (\"device challenge\") of the device grant request. It is used to\nidentify the session.",
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/definitions/oAuth2Client"
+        },
+        "handled_at": {
+          "$ref": "#/definitions/nullTime"
+        },
+        "request_url": {
+          "description": "RequestURL is the original Device Authorization URL requested.",
+          "type": "string"
+        },
+        "requested_access_token_audience": {
+          "$ref": "#/definitions/StringSliceJSONFormat"
+        },
+        "requested_scope": {
+          "$ref": "#/definitions/StringSliceJSONFormat"
+        }
+      }
+    },
     "JSONRawMessage": {
       "type": "object",
       "title": "JSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger."
@@ -2196,6 +2302,15 @@
           "type": "string"
         },
         "proof_type": {
+          "type": "string"
+        }
+      }
+    },
+    "acceptDeviceUserCodeRequest": {
+      "description": "Contains information on an device verification",
+      "type": "object",
+      "properties": {
+        "user_code": {
           "type": "string"
         }
       }
@@ -2932,6 +3047,10 @@
         "context": {
           "$ref": "#/definitions/JSONRawMessage"
         },
+        "device_flow_id": {
+          "description": "DeviceFlowID is the device challenge this consent challenge belongs to, if this flow was initiated by a device.",
+          "type": "string"
+        },
         "login_challenge": {
           "description": "LoginChallenge is the login challenge this consent challenge belongs to. It can be used to associate\na login and consent request in the login \u0026 consent app.",
           "type": "string"
@@ -3051,6 +3170,13 @@
         },
         "client": {
           "$ref": "#/definitions/oAuth2Client"
+        },
+        "device_flow_id": {
+          "description": "DeviceFlowID is the device flow ID that initiated this authentication flow.",
+          "type": "string"
+        },
+        "device_request_id": {
+          "type": "string"
         },
         "oidc_context": {
           "$ref": "#/definitions/oAuth2ConsentRequestOpenIDConnectContext"
@@ -3713,6 +3839,35 @@
         },
         "format": {
           "type": "string"
+        }
+      }
+    },
+    "verifyUserCodeRequest": {
+      "type": "object",
+      "title": "HandledDeviceUserAuthRequest is the request payload used to accept a device user_code.",
+      "properties": {
+        "challenge": {
+          "description": "ID is the identifier (\"device challenge\") of the device request. It is used to\nidentify the session.",
+          "type": "string"
+        },
+        "client": {
+          "$ref": "#/definitions/oAuth2Client"
+        },
+        "device_code_request_id": {
+          "type": "string"
+        },
+        "handled_at": {
+          "$ref": "#/definitions/nullTime"
+        },
+        "request_url": {
+          "description": "RequestURL is the original Device Authorization URL requested.",
+          "type": "string"
+        },
+        "requested_access_token_audience": {
+          "$ref": "#/definitions/StringSliceJSONFormat"
+        },
+        "requested_scope": {
+          "$ref": "#/definitions/StringSliceJSONFormat"
         }
       }
     },

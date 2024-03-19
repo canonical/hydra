@@ -7,6 +7,7 @@ Method | HTTP request | Description
 [**AcceptOAuth2ConsentRequest**](OAuth2Api.md#AcceptOAuth2ConsentRequest) | **Put** /admin/oauth2/auth/requests/consent/accept | Accept OAuth 2.0 Consent Request
 [**AcceptOAuth2LoginRequest**](OAuth2Api.md#AcceptOAuth2LoginRequest) | **Put** /admin/oauth2/auth/requests/login/accept | Accept OAuth 2.0 Login Request
 [**AcceptOAuth2LogoutRequest**](OAuth2Api.md#AcceptOAuth2LogoutRequest) | **Put** /admin/oauth2/auth/requests/logout/accept | Accept OAuth 2.0 Session Logout Request
+[**AcceptUserCodeRequest**](OAuth2Api.md#AcceptUserCodeRequest) | **Put** /admin/oauth2/auth/requests/device/accept | Accepts a device grant user_code request
 [**CreateOAuth2Client**](OAuth2Api.md#CreateOAuth2Client) | **Post** /admin/clients | Create OAuth 2.0 Client
 [**DeleteOAuth2Client**](OAuth2Api.md#DeleteOAuth2Client) | **Delete** /admin/clients/{id} | Delete OAuth 2.0 Client
 [**DeleteOAuth2Token**](OAuth2Api.md#DeleteOAuth2Token) | **Delete** /admin/oauth2/tokens | Delete OAuth 2.0 Access Tokens from specific OAuth 2.0 Client
@@ -230,6 +231,74 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## AcceptUserCodeRequest
+
+> OAuth2RedirectTo AcceptUserCodeRequest(ctx).DeviceChallenge(deviceChallenge).AcceptDeviceUserCodeRequest(acceptDeviceUserCodeRequest).Execute()
+
+Accepts a device grant user_code request
+
+
+
+### Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    openapiclient "./openapi"
+)
+
+func main() {
+    deviceChallenge := "deviceChallenge_example" // string | 
+    acceptDeviceUserCodeRequest := *openapiclient.NewAcceptDeviceUserCodeRequest() // AcceptDeviceUserCodeRequest |  (optional)
+
+    configuration := openapiclient.NewConfiguration()
+    apiClient := openapiclient.NewAPIClient(configuration)
+    resp, r, err := apiClient.OAuth2Api.AcceptUserCodeRequest(context.Background()).DeviceChallenge(deviceChallenge).AcceptDeviceUserCodeRequest(acceptDeviceUserCodeRequest).Execute()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Error when calling `OAuth2Api.AcceptUserCodeRequest``: %v\n", err)
+        fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+    }
+    // response from `AcceptUserCodeRequest`: OAuth2RedirectTo
+    fmt.Fprintf(os.Stdout, "Response from `OAuth2Api.AcceptUserCodeRequest`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiAcceptUserCodeRequestRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **deviceChallenge** | **string** |  | 
+ **acceptDeviceUserCodeRequest** | [**AcceptDeviceUserCodeRequest**](AcceptDeviceUserCodeRequest.md) |  | 
+
+### Return type
+
+[**OAuth2RedirectTo**](OAuth2RedirectTo.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: application/json
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)

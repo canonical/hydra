@@ -230,28 +230,6 @@ func (p *Persister) createSession(ctx context.Context, signature string, request
 	return nil
 }
 
-func (p *Persister) updateSessionBySignature(ctx context.Context, signature string, requester fosite.Requester, table tableName) (err error) {
-	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.updateSession")
-	defer otelx.End(span, &err)
-
-	req, err := p.sqlSchemaFromRequest(ctx, signature, requester, table)
-	if err != nil {
-		return err
-	}
-
-	if count, err := p.UpdateWithNetwork(ctx, req); count != 1 {
-		return errorsx.WithStack(fosite.ErrNotFound)
-	} else if err := sqlcon.HandleError(err); err != nil {
-		if errors.Is(err, sqlcon.ErrConcurrentUpdate) {
-			return errors.Wrap(fosite.ErrSerializationFailure, err.Error())
-		} else if strings.Contains(err.Error(), "Error 1213") { // InnoDB Deadlock?
-			return errors.Wrap(fosite.ErrSerializationFailure, err.Error())
-		}
-		return err
-	}
-	return nil
-}
-
 func (p *Persister) findSessionBySignature(ctx context.Context, signature string, session fosite.Session, table tableName) (fosite.Requester, error) {
 	r := OAuth2RequestSQL{Table: table}
 	err := p.QueryWithNetwork(ctx).Where("signature = ?", signature).First(&r)
@@ -578,11 +556,26 @@ func (p *Persister) CreateDeviceCodeSession(ctx context.Context, signature strin
 	return p.createSession(ctx, signature, requester, sqlTableDeviceCode)
 }
 
-// UpdateDeviceCodeSession updates a device code session
-func (p *Persister) UpdateDeviceCodeSession(ctx context.Context, signature string, requester fosite.Requester) (err error) {
-	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.UpdateDeviceCodeSession")
+// UpdateDeviceCodeSession updates a device code session by requestID
+func (p *Persister) UpdateDeviceCodeSessionByRequestID(ctx context.Context, requestID string, requester fosite.Requester) (err error) {
+	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.UpdateDeviceCodeSessionByRequestID")
 	defer otelx.End(span, &err)
-	return p.updateSessionBySignature(ctx, signature, requester, sqlTableDeviceCode)
+	req, err := p.sqlSchemaFromRequest(ctx, requestID, requester, sqlTableDeviceCode)
+	if err != nil {
+		return
+	}
+
+	/* #nosec G201 table is static */
+	return sqlcon.HandleError(
+		p.Connection(ctx).
+			RawQuery(
+				fmt.Sprintf("UPDATE %s SET session_data=? WHERE request_id=? AND nid = ?", OAuth2RequestSQL{Table: sqlTableDeviceCode}.TableName()),
+				req.Session,
+				requestID,
+				p.NetworkID(ctx),
+			).
+			Exec(),
+	)
 }
 
 // GetDeviceCodeSession returns a device code session from the database
@@ -592,6 +585,7 @@ func (p *Persister) GetDeviceCodeSession(ctx context.Context, signature string, 
 	return p.findSessionBySignature(ctx, signature, session, sqlTableDeviceCode)
 }
 
+// InvalidateDeviceCodeSession invalidates a device code session
 func (p *Persister) InvalidateDeviceCodeSession(ctx context.Context, signature string) (err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.InvalidateDeviceCodeSession")
 	defer otelx.End(span, &err)
@@ -632,6 +626,24 @@ func (p *Persister) InvalidateUserCodeSession(ctx context.Context, signature str
 		p.Connection(ctx).
 			RawQuery(
 				fmt.Sprintf("UPDATE %s SET active=false WHERE signature=? AND nid = ?", OAuth2RequestSQL{Table: sqlTableUserCode}.TableName()),
+				signature,
+				p.NetworkID(ctx),
+			).
+			Exec(),
+	)
+}
+
+// UpdateAndInvalidateUserCodeSession invalidates a user code session and connects it with the device flow challenge ID
+func (p *Persister) UpdateAndInvalidateUserCodeSession(ctx context.Context, signature, challenge_id string) (err error) {
+	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.UpdateAndInvalidateUserCodeSession")
+	defer otelx.End(span, &err)
+
+	/* #nosec G201 table is static */
+	return sqlcon.HandleError(
+		p.Connection(ctx).
+			RawQuery(
+				fmt.Sprintf("UPDATE %s SET active=false, challenge_id=? WHERE signature=? AND nid = ?", OAuth2RequestSQL{Table: sqlTableUserCode}.TableName()),
+				challenge_id,
 				signature,
 				p.NetworkID(ctx),
 			).

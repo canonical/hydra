@@ -46,6 +46,8 @@
     "valid": false
   },
   "LoginAuthenticatedAt": null,
+  "DeviceFlowID": "",
+  "DeviceCodeRequestID": "",
   "ConsentChallengeID": "challenge-0016",
   "ConsentSkip": true,
   "ConsentVerifier": "verifier-0016",

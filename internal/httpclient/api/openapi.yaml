@@ -786,6 +786,40 @@ paths:
       summary: Reject OAuth 2.0 Consent Request
       tags:
       - oAuth2
+  /admin/oauth2/auth/requests/device/accept:
+    put:
+      description: Accepts a device grant user_code request
+      operationId: acceptUserCodeRequest
+      parameters:
+      - explode: true
+        in: query
+        name: device_challenge
+        required: true
+        schema:
+          type: string
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/acceptDeviceUserCodeRequest'
+        x-originalParamName: Body
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/oAuth2RedirectTo'
+          description: oAuth2RedirectTo
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorOAuth2'
+          description: errorOAuth2
+      summary: Accepts a device grant user_code request
+      tags:
+      - oAuth2
   /admin/oauth2/auth/requests/login:
     get:
       description: "When an authorization code, hybrid, or implicit OAuth 2.0 Flow\
@@ -1481,7 +1515,7 @@ paths:
         \ use your own implementation to perform OAuth2 flows.\nOAuth2 is a very popular\
         \ protocol and a library for your programming language will exists.\n\nTo\
         \ learn more about this flow please refer to the specification: https://tools.ietf.org/html/rfc8628"
-      operationId: performOAuth2DeviceFlow
+      operationId: oAuth2DeviceFlow
       responses:
         "200":
           content:
@@ -1496,6 +1530,24 @@ paths:
                 $ref: '#/components/schemas/errorOAuth2'
           description: errorOAuth2
       summary: The OAuth 2.0 Device Authorize Endpoint
+      tags:
+      - v0alpha2
+  /oauth2/device/verify:
+    get:
+      description: This is the device user verification endpoint. The user is redirected
+        her when trying to login using the device flow.
+      operationId: performOAuth2DeviceVerificationFlow
+      responses:
+        "302":
+          description: "Empty responses are sent when, for example, resources are\
+            \ deleted. The HTTP status code for empty responses is\ntypically 201."
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorOAuth2'
+          description: errorOAuth2
+      summary: OAuth 2.0 Device Verification Endpoint
       tags:
       - v0alpha2
   /oauth2/register:
@@ -1854,6 +1906,38 @@ components:
         a verifiable credential.
       type: object
     DefaultError: {}
+    DeviceUserAuthRequest:
+      properties:
+        challenge:
+          description: |-
+            ID is the identifier ("device challenge") of the device grant request. It is used to
+            identify the session.
+          type: string
+        client:
+          $ref: '#/components/schemas/oAuth2Client'
+        handled_at:
+          format: date-time
+          title: NullTime implements sql.NullTime functionality.
+          type: string
+        request_url:
+          description: RequestURL is the original Device Authorization URL requested.
+          type: string
+        requested_access_token_audience:
+          items:
+            type: string
+          title: "StringSliceJSONFormat represents []string{} which is encoded to/from\
+            \ JSON for SQL storage."
+          type: array
+        requested_scope:
+          items:
+            type: string
+          title: "StringSliceJSONFormat represents []string{} which is encoded to/from\
+            \ JSON for SQL storage."
+          type: array
+      required:
+      - challenge
+      title: Contains information on an ongoing device grant request.
+      type: object
     JSONRawMessage:
       title: "JSONRawMessage represents a json.RawMessage that works well with JSON,\
         \ SQL, and Swagger."
@@ -1916,6 +2000,12 @@ components:
         proof_type:
           type: string
       title: VerifiableCredentialProof contains the proof of a verifiable credential.
+      type: object
+    acceptDeviceUserCodeRequest:
+      description: Contains information on an device verification
+      properties:
+        user_code:
+          type: string
       type: object
     acceptOAuth2ConsentRequest:
       properties:
@@ -3022,6 +3112,7 @@ components:
         skip: true
         request_url: request_url
         acr: acr
+        device_flow_id: device_flow_id
         context: ""
         challenge: challenge
         client:
@@ -3114,6 +3205,10 @@ components:
         context:
           title: "JSONRawMessage represents a json.RawMessage that works well with\
             \ JSON, SQL, and Swagger."
+        device_flow_id:
+          description: "DeviceFlowID is the device challenge this consent challenge\
+            \ belongs to, if this flow was initiated by a device."
+          type: string
         login_challenge:
           description: |-
             LoginChallenge is the login challenge this consent challenge belongs to. It can be used to associate
@@ -3261,6 +3356,7 @@ components:
           skip: true
           request_url: request_url
           acr: acr
+          device_flow_id: device_flow_id
           context: ""
           challenge: challenge
           client:
@@ -3395,6 +3491,7 @@ components:
         - requested_access_token_audience
         - requested_access_token_audience
         subject: subject
+        device_flow_id: device_flow_id
         oidc_context:
           login_hint: login_hint
           ui_locales:
@@ -3473,6 +3570,7 @@ components:
           - response_types
         session_id: session_id
         skip: true
+        device_request_id: device_request_id
         request_url: request_url
         requested_scope:
         - requested_scope
@@ -3485,6 +3583,12 @@ components:
           type: string
         client:
           $ref: '#/components/schemas/oAuth2Client'
+        device_flow_id:
+          description: DeviceFlowID is the device flow ID that initiated this authentication
+            flow.
+          type: string
+        device_request_id:
+          type: string
         oidc_context:
           $ref: '#/components/schemas/oAuth2ConsentRequestOpenIDConnectContext'
         request_url:
@@ -4415,6 +4519,39 @@ components:
         format:
           type: string
       title: VerifiableCredentialResponse contains the verifiable credential.
+      type: object
+    verifyUserCodeRequest:
+      properties:
+        challenge:
+          description: |-
+            ID is the identifier ("device challenge") of the device request. It is used to
+            identify the session.
+          type: string
+        client:
+          $ref: '#/components/schemas/oAuth2Client'
+        device_code_request_id:
+          type: string
+        handled_at:
+          format: date-time
+          title: NullTime implements sql.NullTime functionality.
+          type: string
+        request_url:
+          description: RequestURL is the original Device Authorization URL requested.
+          type: string
+        requested_access_token_audience:
+          items:
+            type: string
+          title: "StringSliceJSONFormat represents []string{} which is encoded to/from\
+            \ JSON for SQL storage."
+          type: array
+        requested_scope:
+          items:
+            type: string
+          title: "StringSliceJSONFormat represents []string{} which is encoded to/from\
+            \ JSON for SQL storage."
+          type: array
+      title: HandledDeviceUserAuthRequest is the request payload used to accept a
+        device user_code.
       type: object
     version:
       properties:

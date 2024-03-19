@@ -18,9 +18,12 @@ import (
 // OAuth2LoginRequest struct for OAuth2LoginRequest
 type OAuth2LoginRequest struct {
 	// ID is the identifier (\"login challenge\") of the login request. It is used to identify the session.
-	Challenge   string                                    `json:"challenge"`
-	Client      OAuth2Client                              `json:"client"`
-	OidcContext *OAuth2ConsentRequestOpenIDConnectContext `json:"oidc_context,omitempty"`
+	Challenge string       `json:"challenge"`
+	Client    OAuth2Client `json:"client"`
+	// DeviceFlowID is the device flow ID that initiated this authentication flow.
+	DeviceFlowId    *string                                   `json:"device_flow_id,omitempty"`
+	DeviceRequestId *string                                   `json:"device_request_id,omitempty"`
+	OidcContext     *OAuth2ConsentRequestOpenIDConnectContext `json:"oidc_context,omitempty"`
 	// RequestURL is the original OAuth 2.0 Authorization URL requested by the OAuth 2.0 client. It is the URL which initiates the OAuth 2.0 Authorization Code or OAuth 2.0 Implicit flow. This URL is typically not needed, but might come in handy if you want to deal with additional request parameters.
 	RequestUrl                   string   `json:"request_url"`
 	RequestedAccessTokenAudience []string `json:"requested_access_token_audience,omitempty"`
@@ -101,6 +104,70 @@ func (o *OAuth2LoginRequest) GetClientOk() (*OAuth2Client, bool) {
 // SetClient sets field value
 func (o *OAuth2LoginRequest) SetClient(v OAuth2Client) {
 	o.Client = v
+}
+
+// GetDeviceFlowId returns the DeviceFlowId field value if set, zero value otherwise.
+func (o *OAuth2LoginRequest) GetDeviceFlowId() string {
+	if o == nil || o.DeviceFlowId == nil {
+		var ret string
+		return ret
+	}
+	return *o.DeviceFlowId
+}
+
+// GetDeviceFlowIdOk returns a tuple with the DeviceFlowId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *OAuth2LoginRequest) GetDeviceFlowIdOk() (*string, bool) {
+	if o == nil || o.DeviceFlowId == nil {
+		return nil, false
+	}
+	return o.DeviceFlowId, true
+}
+
+// HasDeviceFlowId returns a boolean if a field has been set.
+func (o *OAuth2LoginRequest) HasDeviceFlowId() bool {
+	if o != nil && o.DeviceFlowId != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetDeviceFlowId gets a reference to the given string and assigns it to the DeviceFlowId field.
+func (o *OAuth2LoginRequest) SetDeviceFlowId(v string) {
+	o.DeviceFlowId = &v
+}
+
+// GetDeviceRequestId returns the DeviceRequestId field value if set, zero value otherwise.
+func (o *OAuth2LoginRequest) GetDeviceRequestId() string {
+	if o == nil || o.DeviceRequestId == nil {
+		var ret string
+		return ret
+	}
+	return *o.DeviceRequestId
+}
+
+// GetDeviceRequestIdOk returns a tuple with the DeviceRequestId field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *OAuth2LoginRequest) GetDeviceRequestIdOk() (*string, bool) {
+	if o == nil || o.DeviceRequestId == nil {
+		return nil, false
+	}
+	return o.DeviceRequestId, true
+}
+
+// HasDeviceRequestId returns a boolean if a field has been set.
+func (o *OAuth2LoginRequest) HasDeviceRequestId() bool {
+	if o != nil && o.DeviceRequestId != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetDeviceRequestId gets a reference to the given string and assigns it to the DeviceRequestId field.
+func (o *OAuth2LoginRequest) SetDeviceRequestId(v string) {
+	o.DeviceRequestId = &v
 }
 
 // GetOidcContext returns the OidcContext field value if set, zero value otherwise.
@@ -310,6 +377,12 @@ func (o OAuth2LoginRequest) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["client"] = o.Client
+	}
+	if o.DeviceFlowId != nil {
+		toSerialize["device_flow_id"] = o.DeviceFlowId
+	}
+	if o.DeviceRequestId != nil {
+		toSerialize["device_request_id"] = o.DeviceRequestId
 	}
 	if o.OidcContext != nil {
 		toSerialize["oidc_context"] = o.OidcContext
