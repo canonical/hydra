@@ -1097,7 +1097,7 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	f, err := flowctx.Decode[flow.DeviceFlow](ctx, h.r.FlowCipher(), challenge, flowctx.AsDeviceChallenge)
+	f, err := flowctx.Decode[flow.Flow](ctx, h.r.FlowCipher(), challenge, flowctx.AsDeviceChallenge)
 	if err != nil {
 		h.r.Writer().WriteError(w, r, err)
 		return
@@ -1126,7 +1126,7 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 	}
 
 	p := flow.HandledDeviceUserAuthRequest{
-		ID:                  f.ID,
+		ID:                  f.DeviceChallengeID.String(),
 		RequestedAt:         cr.RequestedAt,
 		HandledAt:           sqlxx.NullTime(time.Now().UTC()),
 		Client:              userCodeRequest.GetClient().(*client.Client),
@@ -1134,6 +1134,19 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 		RequestedScope:      []string(userCodeRequest.GetRequestedScopes()),
 		RequestedAudience:   []string(userCodeRequest.GetRequestedAudience()),
 	}
+
+	// Append the client_id to the original RequestURL, as it is needed for the login flow
+	reqURL, err := url.Parse(f.RequestURL)
+	if err != nil {
+		h.r.Writer().WriteError(w, r, errorsx.WithStack(err))
+		return
+	}
+	if reqURL.Query().Get("client_id") == "" {
+		q := reqURL.Query()
+		q.Add("client_id", userCodeRequest.GetClient().GetID())
+		reqURL.RawQuery = q.Encode()
+	}
+	f.RequestURL = reqURL.String()
 
 	hr, err := h.r.ConsentManager().HandleDeviceUserAuthRequest(ctx, f, challenge, &p)
 	if err != nil {
