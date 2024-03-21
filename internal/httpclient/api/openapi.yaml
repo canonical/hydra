@@ -3109,10 +3109,10 @@ components:
           - acr_values
           - acr_values
           display: display
+        device_challenge_id: device_challenge_id
         skip: true
         request_url: request_url
         acr: acr
-        device_flow_id: device_flow_id
         context: ""
         challenge: challenge
         client:
@@ -3205,8 +3205,8 @@ components:
         context:
           title: "JSONRawMessage represents a json.RawMessage that works well with\
             \ JSON, SQL, and Swagger."
-        device_flow_id:
-          description: "DeviceFlowID is the device challenge this consent challenge\
+        device_challenge_id:
+          description: "DeviceChallenge is the device challenge this consent challenge\
             \ belongs to, if this flow was initiated by a device."
           type: string
         login_challenge:
@@ -3353,10 +3353,10 @@ components:
             - acr_values
             - acr_values
             display: display
+          device_challenge_id: device_challenge_id
           skip: true
           request_url: request_url
           acr: acr
-          device_flow_id: device_flow_id
           context: ""
           challenge: challenge
           client:
@@ -3491,7 +3491,6 @@ components:
         - requested_access_token_audience
         - requested_access_token_audience
         subject: subject
-        device_flow_id: device_flow_id
         oidc_context:
           login_hint: login_hint
           ui_locales:
@@ -3570,7 +3569,6 @@ components:
           - response_types
         session_id: session_id
         skip: true
-        device_request_id: device_request_id
         request_url: request_url
         requested_scope:
         - requested_scope
@@ -3583,12 +3581,6 @@ components:
           type: string
         client:
           $ref: '#/components/schemas/oAuth2Client'
-        device_flow_id:
-          description: DeviceFlowID is the device flow ID that initiated this authentication
-            flow.
-          type: string
-        device_request_id:
-          type: string
         oidc_context:
           $ref: '#/components/schemas/oAuth2ConsentRequestOpenIDConnectContext'
         request_url:

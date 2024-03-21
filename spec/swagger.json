@@ -3047,8 +3047,8 @@
         "context": {
           "$ref": "#/definitions/JSONRawMessage"
         },
-        "device_flow_id": {
-          "description": "DeviceFlowID is the device challenge this consent challenge belongs to, if this flow was initiated by a device.",
+        "device_challenge_id": {
+          "description": "DeviceChallenge is the device challenge this consent challenge belongs to, if this flow was initiated by a device.",
           "type": "string"
         },
         "login_challenge": {
@@ -3170,13 +3170,6 @@
         },
         "client": {
           "$ref": "#/definitions/oAuth2Client"
-        },
-        "device_flow_id": {
-          "description": "DeviceFlowID is the device flow ID that initiated this authentication flow.",
-          "type": "string"
-        },
-        "device_request_id": {
-          "type": "string"
         },
         "oidc_context": {
           "$ref": "#/definitions/oAuth2ConsentRequestOpenIDConnectContext"
