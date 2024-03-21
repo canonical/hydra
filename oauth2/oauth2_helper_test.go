@@ -53,9 +53,9 @@ func (c *consentMock) HandleOAuth2DeviceAuthorizationRequest(ctx context.Context
 
 	return &flow.AcceptOAuth2ConsentRequest{
 		ConsentRequest: &flow.OAuth2ConsentRequest{
-			Subject:      "foo",
-			ACR:          "1",
-			DeviceFlowID: "12345",
+			Subject:         "foo",
+			ACR:             "1",
+			DeviceChallenge: "12345",
 		},
 		AuthenticatedAt: sqlxx.NullTime(c.authTime),
 		GrantedScope:    []string{"offline", "openid", "hydra.*"},
