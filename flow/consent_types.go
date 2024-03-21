@@ -570,10 +570,6 @@ type LoginRequest struct {
 	// required: true
 	RequestURL string `json:"request_url"`
 
-	// DeviceFlowID is the device flow ID that initiated this authentication flow.
-	DeviceFlowID    sqlxx.NullString `json:"device_flow_id" faker:"-"`
-	DeviceRequestID sqlxx.NullString `json:"device_request_id" faker:"-"`
-
 	// SessionID is the login session ID. If the user-agent reuses a login session (via cookie / remember flag)
 	// this ID will remain the same. If the user-agent did not have an existing authentication session (e.g. remember is false)
 	// this will be a new random value. This value is used as the "sid" parameter in the ID Token and in OIDC Front-/Back-
@@ -649,8 +645,8 @@ type OAuth2ConsentRequest struct {
 	// channel logout. It's value can generally be used to associate consecutive login requests by a certain user.
 	LoginSessionID sqlxx.NullString `json:"login_session_id"`
 
-	// DeviceFlowID is the device challenge this consent challenge belongs to, if this flow was initiated by a device.
-	DeviceFlowID sqlxx.NullString `json:"device_flow_id" faker:"-"`
+	// DeviceChallenge is the device challenge this consent challenge belongs to, if this flow was initiated by a device.
+	DeviceChallenge sqlxx.NullString `json:"device_challenge_id" faker:"-"`
 
 	// ACR represents the Authentication AuthorizationContext Class Reference value for this authentication session. You can use it
 	// to express that, for example, a user authenticated using two factor authentication.
