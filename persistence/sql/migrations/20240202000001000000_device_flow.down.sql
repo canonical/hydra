@@ -12,10 +12,11 @@ ALTER TABLE hydra_oauth2_user_code DROP FOREIGN KEY IF EXISTS hydra_oauth2_user_
 
 DROP TABLE IF EXISTS hydra_oauth2_user_code;
 
-ALTER TABLE hydra_oauth2_device_flow DROP FOREIGN KEY IF EXISTS hydra_oauth2_device_flow_verifier_idx;
-ALTER TABLE hydra_oauth2_device_flow DROP FOREIGN KEY IF EXISTS hydra_oauth2_device_flow_challenge_idx;
-ALTER TABLE hydra_oauth2_device_flow DROP FOREIGN KEY IF EXISTS hydra_oauth2_device_flow_cid_idx;
-
-DROP TABLE IF EXISTS hydra_oauth2_device_flow;
-
-ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_flow_id;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_challenge_id;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_code_request_id;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_verifier;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_csrf;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_user_code_accepted_at;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_was_used;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_handled_at;
+ALTER TABLE hydra_oauth2_flow DROP COLUMN IF EXISTS device_error;
