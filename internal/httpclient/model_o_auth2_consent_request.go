@@ -24,8 +24,8 @@ type OAuth2ConsentRequest struct {
 	Challenge string        `json:"challenge"`
 	Client    *OAuth2Client `json:"client,omitempty"`
 	Context   interface{}   `json:"context,omitempty"`
-	// DeviceFlowID is the device challenge this consent challenge belongs to, if this flow was initiated by a device.
-	DeviceFlowId *string `json:"device_flow_id,omitempty"`
+	// DeviceChallenge is the device challenge this consent challenge belongs to, if this flow was initiated by a device.
+	DeviceChallengeId *string `json:"device_challenge_id,omitempty"`
 	// LoginChallenge is the login challenge this consent challenge belongs to. It can be used to associate a login and consent request in the login & consent app.
 	LoginChallenge *string `json:"login_challenge,omitempty"`
 	// LoginSessionID is the login session ID. If the user-agent reuses a login session (via cookie / remember flag) this ID will remain the same. If the user-agent did not have an existing authentication session (e.g. remember is false) this will be a new random value. This value is used as the \"sid\" parameter in the ID Token and in OIDC Front-/Back- channel logout. It's value can generally be used to associate consecutive login requests by a certain user.
@@ -212,36 +212,36 @@ func (o *OAuth2ConsentRequest) SetContext(v interface{}) {
 	o.Context = v
 }
 
-// GetDeviceFlowId returns the DeviceFlowId field value if set, zero value otherwise.
-func (o *OAuth2ConsentRequest) GetDeviceFlowId() string {
-	if o == nil || o.DeviceFlowId == nil {
+// GetDeviceChallengeId returns the DeviceChallengeId field value if set, zero value otherwise.
+func (o *OAuth2ConsentRequest) GetDeviceChallengeId() string {
+	if o == nil || o.DeviceChallengeId == nil {
 		var ret string
 		return ret
 	}
-	return *o.DeviceFlowId
+	return *o.DeviceChallengeId
 }
 
-// GetDeviceFlowIdOk returns a tuple with the DeviceFlowId field value if set, nil otherwise
+// GetDeviceChallengeIdOk returns a tuple with the DeviceChallengeId field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *OAuth2ConsentRequest) GetDeviceFlowIdOk() (*string, bool) {
-	if o == nil || o.DeviceFlowId == nil {
+func (o *OAuth2ConsentRequest) GetDeviceChallengeIdOk() (*string, bool) {
+	if o == nil || o.DeviceChallengeId == nil {
 		return nil, false
 	}
-	return o.DeviceFlowId, true
+	return o.DeviceChallengeId, true
 }
 
-// HasDeviceFlowId returns a boolean if a field has been set.
-func (o *OAuth2ConsentRequest) HasDeviceFlowId() bool {
-	if o != nil && o.DeviceFlowId != nil {
+// HasDeviceChallengeId returns a boolean if a field has been set.
+func (o *OAuth2ConsentRequest) HasDeviceChallengeId() bool {
+	if o != nil && o.DeviceChallengeId != nil {
 		return true
 	}
 
 	return false
 }
 
-// SetDeviceFlowId gets a reference to the given string and assigns it to the DeviceFlowId field.
-func (o *OAuth2ConsentRequest) SetDeviceFlowId(v string) {
-	o.DeviceFlowId = &v
+// SetDeviceChallengeId gets a reference to the given string and assigns it to the DeviceChallengeId field.
+func (o *OAuth2ConsentRequest) SetDeviceChallengeId(v string) {
+	o.DeviceChallengeId = &v
 }
 
 // GetLoginChallenge returns the LoginChallenge field value if set, zero value otherwise.
@@ -517,8 +517,8 @@ func (o OAuth2ConsentRequest) MarshalJSON() ([]byte, error) {
 	if o.Context != nil {
 		toSerialize["context"] = o.Context
 	}
-	if o.DeviceFlowId != nil {
-		toSerialize["device_flow_id"] = o.DeviceFlowId
+	if o.DeviceChallengeId != nil {
+		toSerialize["device_challenge_id"] = o.DeviceChallengeId
 	}
 	if o.LoginChallenge != nil {
 		toSerialize["login_challenge"] = o.LoginChallenge

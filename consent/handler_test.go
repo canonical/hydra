@@ -105,7 +105,7 @@ func TestGetLoginRequest(t *testing.T) {
 			if tc.exists {
 				cl := &client.Client{ID: "client" + key}
 				require.NoError(t, reg.ClientManager().CreateClient(context.Background(), cl))
-				f, err := reg.ConsentManager().CreateLoginRequest(context.Background(), &flow.LoginRequest{
+				f, err := reg.ConsentManager().CreateLoginRequest(context.Background(), nil, &flow.LoginRequest{
 					Client:      cl,
 					ID:          challenge,
 					RequestURL:  requestURL,
@@ -177,7 +177,7 @@ func TestGetConsentRequest(t *testing.T) {
 					RequestURL:  requestURL,
 					RequestedAt: time.Now(),
 				}
-				f, err := reg.ConsentManager().CreateLoginRequest(ctx, lr)
+				f, err := reg.ConsentManager().CreateLoginRequest(ctx, nil, lr)
 				require.NoError(t, err)
 				challenge, err = f.ToLoginChallenge(ctx, reg)
 				require.NoError(t, err)
@@ -245,7 +245,7 @@ func TestGetLoginRequestWithDuplicateAccept(t *testing.T) {
 
 		cl := &client.Client{ID: "client"}
 		require.NoError(t, reg.ClientManager().CreateClient(ctx, cl))
-		f, err := reg.ConsentManager().CreateLoginRequest(ctx, &flow.LoginRequest{
+		f, err := reg.ConsentManager().CreateLoginRequest(ctx, nil, &flow.LoginRequest{
 			Client:      cl,
 			ID:          challenge,
 			RequestURL:  requestURL,

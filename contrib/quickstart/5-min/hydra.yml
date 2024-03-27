@@ -2,12 +2,17 @@ serve:
   cookies:
     same_site_mode: Lax
 
+log:
+  leak_sensitive_values: true
+  level: debug
+
 urls:
   self:
-    issuer: http://127.0.0.1:4444
-  consent: http://127.0.0.1:3000/consent
-  login: http://127.0.0.1:3000/login
-  logout: http://127.0.0.1:3000/logout
+    issuer: http://localhost:4444
+  consent: http://localhost:4455/ui/consent
+  login: http://localhost:4455/ui/login
+  logout: http://localhost:4455/ui/logout
+  device_verification: http://localhost:4455/ui/device
 
 secrets:
   system:
