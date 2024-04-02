@@ -93,6 +93,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5 // indirect
 	github.com/containerd/continuity v0.4.1 // indirect
+	github.com/coocood/freecache v1.2.4 // indirect
 	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/cristalhq/jwt/v4 v4.0.2 // indirect
 	github.com/dave/jennifer v1.7.0 // indirect
@@ -197,7 +198,6 @@ require (
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/ory/dockertest/v3 v3.10.0 // indirect
 	github.com/ory/go-convenience v0.1.0 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/pkg/profile v1.7.0 // indirect
@@ -242,7 +242,6 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17 // indirect
@@ -256,4 +255,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240325192919-3c931a9affa9
+replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240329132814-3be772246a38
