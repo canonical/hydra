@@ -1113,9 +1113,14 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithHint(`'user_code' signature could not be computed`)))
 		return
 	}
-	userCodeRequest, err := h.r.OAuth2Storage().GetUserCodeSession(r.Context(), userCodeSignature, &fosite.DefaultSession{})
+	userCodeRequest, err := h.r.OAuth2Storage().GetUserCodeSession(r.Context(), userCodeSignature, nil)
 	if err != nil {
 		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrNotFound.WithWrap(err).WithHint(`'user_code' session not found`)))
+		return
+	}
+	err = h.r.RFC8628HMACStrategy().ValidateUserCode(ctx, userCodeRequest, reqBody.UserCode)
+	if err != nil {
+		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrTokenExpired.WithWrap(err).WithHint(`'user_code' has expired`)))
 		return
 	}
 

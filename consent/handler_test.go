@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/fosite"
+	"github.com/ory/fosite/handler/openid"
+	"github.com/ory/fosite/token/jwt"
 	hydra "github.com/ory/hydra-client-go/v2"
 	"github.com/ory/hydra/v2/client"
 	. "github.com/ory/hydra/v2/consent"
@@ -527,6 +529,37 @@ func TestAcceptCodeDeviceRequestFailure(t *testing.T) {
 			},
 			validateResponse: func(resp *http.Response) {
 				require.EqualValues(t, http.StatusNotFound, resp.StatusCode)
+			},
+		},
+		{
+			desc: "expired user_code",
+			getBody: func() ([]byte, error) {
+				deviceRequest := fosite.NewDeviceRequest()
+				deviceRequest.Client = cl
+				userCode, sig, err := reg.RFC8628HMACStrategy().GenerateUserCode(ctx)
+				require.NoError(t, err)
+				deviceRequest.SetSession(
+					&oauth2.Session{
+						DefaultSession: &openid.DefaultSession{
+							Headers: &jwt.Headers{},
+						},
+						BrowserFlowCompleted: false,
+					},
+				)
+				exp := time.Now().UTC()
+				deviceRequest.Session.SetExpiresAt(fosite.UserCode, exp)
+				err = reg.OAuth2Storage().CreateUserCodeSession(ctx, sig, deviceRequest)
+				require.NoError(t, err)
+				return json.Marshal(&hydra.AcceptDeviceUserCodeRequest{UserCode: &userCode})
+			},
+			getURL: func() string {
+				return ts.URL + "/admin" + DevicePath + "/accept?challenge=" + challenge
+			},
+			validateResponse: func(resp *http.Response) {
+				require.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
+				result := &fosite.RFC6749Error{}
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
+				require.EqualValues(t, result.ErrorField, fosite.ErrTokenExpired.ErrorField)
 			},
 		},
 		{
