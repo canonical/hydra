@@ -1091,6 +1091,11 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	if reqBody.UserCode == "" {
+		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrInvalidRequest.WithHint("Field 'user_code' must not be empty.")))
+		return
+	}
+
 	cr, err := h.r.ConsentManager().GetDeviceUserAuthRequest(ctx, challenge)
 	if err != nil {
 		h.r.Writer().WriteError(w, r, errorsx.WithStack(err))
@@ -1100,11 +1105,6 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 	f, err := flowctx.Decode[flow.Flow](ctx, h.r.FlowCipher(), challenge, flowctx.AsDeviceChallenge)
 	if err != nil {
 		h.r.Writer().WriteError(w, r, err)
-		return
-	}
-
-	if reqBody.UserCode == "" {
-		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrInvalidRequest.WithHint("Field 'user_code' must not be empty.")))
 		return
 	}
 
