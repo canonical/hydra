@@ -613,6 +613,9 @@ func (p *Persister) CreateUserCodeSession(ctx context.Context, signature string,
 func (p *Persister) GetUserCodeSession(ctx context.Context, signature string, session fosite.Session) (_ fosite.Requester, err error) {
 	ctx, span := p.r.Tracer(ctx).Tracer().Start(ctx, "persistence.sql.GetUserCodeSession")
 	defer otelx.End(span, &err)
+	if session == nil {
+		session = oauth2.NewSession("")
+	}
 	return p.findSessionBySignature(ctx, signature, session, sqlTableUserCode)
 }
 
