@@ -255,5 +255,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-//replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240329132814-3be772246a38
-replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240409224826-9e5f7e217f9b
+replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240412170332-7fe9b8979dd3
