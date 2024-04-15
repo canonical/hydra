@@ -74,8 +74,8 @@ github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 h1:DDGfHa7BWjL4Yn
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
 github.com/bradleyjkemp/cupaloy/v2 v2.8.0 h1:any4BmKE+jGIaMpnU8YgH/I2LPiLBufr6oMMlVBbn9M=
 github.com/bradleyjkemp/cupaloy/v2 v2.8.0/go.mod h1:bm7JXdkRd4BHJk9HpwqAI8BoAY1lps46Enkdqw6aRX0=
-github.com/canonical/fosite v0.0.0-20240329132814-3be772246a38 h1:tM/abV0wyvC6eekGfGIu2tyTemN3xGKhFpHFuN7wYH8=
-github.com/canonical/fosite v0.0.0-20240329132814-3be772246a38/go.mod h1:G5iZOjyC42o5uZaZK4GQdrqQeLxWZ4NZpD3rDRYM0Mc=
+github.com/canonical/fosite v0.0.0-20240412170332-7fe9b8979dd3 h1:ZDkf+uEuw7eOY/JcRUoncTbt+WWG0TwoIjJ8hHU5Uuw=
+github.com/canonical/fosite v0.0.0-20240412170332-7fe9b8979dd3/go.mod h1:G5iZOjyC42o5uZaZK4GQdrqQeLxWZ4NZpD3rDRYM0Mc=
 github.com/cenkalti/backoff/v3 v3.2.2 h1:cfUAAO3yvKMYKPrvhDuHSwQnhZNk/RMHKdZqKTxfm6M=
 github.com/cenkalti/backoff/v3 v3.2.2/go.mod h1:cIeZDE3IrqwwJl6VUwCN6trj1oXrTS4rc0ij+ULvLYs=
 github.com/cenkalti/backoff/v4 v4.2.1 h1:y4OZtCnogmCPw98Zjyt5a6+QwPLGkiQsYW5oUqylYbM=
