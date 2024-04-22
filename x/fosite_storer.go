@@ -49,6 +49,7 @@ type FositeStorer interface {
 	// This is duplicated from Ory Fosite to help against deprecation linting errors.
 	DeleteOpenIDConnectSession(ctx context.Context, authorizeCode string) error
 
+	GetDeviceCodeSessionByRequestID(ctx context.Context, requestID string, requester fosite.Session) (fosite.Requester, error)
 	UpdateDeviceCodeSessionByRequestID(ctx context.Context, requestID string, requester fosite.Requester) error
 	UpdateAndInvalidateUserCodeSession(ctx context.Context, signature, challenge_id string) (err error)
 }

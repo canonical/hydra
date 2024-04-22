@@ -1174,6 +1174,7 @@ func TestStrategyDeviceLoginConsent(t *testing.T) {
 			resp, err := hc.Get(devResp.VerificationURIComplete)
 			require.NoError(t, err)
 			require.Contains(t, reg.Config().DeviceDoneURL(ctx).String(), resp.Request.URL.Path, "did not end up in post device URL")
+			require.Equal(t, resp.Request.URL.Query().Get("client_id"), c.ID)
 
 			conf := oauth2Config(t, c)
 			_, err = conf.DeviceAccessToken(ctx, devResp)
