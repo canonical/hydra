@@ -1,3 +1,8 @@
+<p align="left">
+    <a href="https://github.com/canonical/hydra/actions/workflows/ci.yaml"><img src="https://github.com/canonical/hydra/actions/workflows/ci.yaml/badge.svg?branch=canonical&event=push" alt="CI Tasks for Ory Hydra"></a>
+    <a href="https://codecov.io/gh/canonical/hydra"><img src="https://codecov.io/gh/canonical/hydra/branch/canonical/graph/badge.svg?token=y4fVk2Of8a"/></a>
+</p>
+
 This is a fork of [Ory Hydra](https://github.com/ory/hydra). Ory Hydra is used
 as the OAuth2/OIDC Server on the
 [Canonical Identity Platform](https://charmhub.io/topics/canonical-identity-platform).
