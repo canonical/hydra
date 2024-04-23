@@ -3790,6 +3790,7 @@ components:
         - userinfo_signed_response_alg
         - userinfo_signed_response_alg
         authorization_endpoint: https://playground.ory.sh/ory-hydra/public/oauth2/auth
+        device_authorization_endpoint: https://playground.ory.sh/ory-hydra/public/oauth2/device/oauth
         claims_supported:
         - claims_supported
         - claims_supported
@@ -3906,6 +3907,10 @@ components:
           items:
             $ref: '#/components/schemas/credentialSupportedDraft00'
           type: array
+        device_authorization_endpoint:
+          description: OAuth 2.0 Device Authorization Endpoint URL
+          example: https://playground.ory.sh/ory-hydra/public/oauth2/device/oauth
+          type: string
         end_session_endpoint:
           description: |-
             OpenID Connect End-Session Endpoint
@@ -4081,6 +4086,7 @@ components:
           type: array
       required:
       - authorization_endpoint
+      - device_authorization_endpoint
       - id_token_signed_response_alg
       - id_token_signing_alg_values_supported
       - issuer
