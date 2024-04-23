@@ -261,6 +261,12 @@ type oidcConfiguration struct {
 	// example: https://playground.ory.sh/ory-hydra/public/oauth2/auth
 	AuthURL string `json:"authorization_endpoint"`
 
+	// OAuth 2.0 Device Authorization Endpoint URL
+	//
+	// required: true
+	// example: https://playground.ory.sh/ory-hydra/public/oauth2/device/oauth
+	DeviceAuthorizationURL string `json:"device_authorization_endpoint"`
+
 	// OpenID Connect Dynamic Client Registration Endpoint URL
 	//
 	// example: https://playground.ory.sh/ory-hydra/admin/client
@@ -498,6 +504,7 @@ func (h *Handler) discoverOidcConfiguration(w http.ResponseWriter, r *http.Reque
 	h.r.Writer().Write(w, r, &oidcConfiguration{
 		Issuer:                                 h.c.IssuerURL(ctx).String(),
 		AuthURL:                                h.c.OAuth2AuthURL(ctx).String(),
+		DeviceAuthorizationURL:                 h.c.OAuth2DeviceAuthorisationURL(ctx).String(),
 		TokenURL:                               h.c.OAuth2TokenURL(ctx).String(),
 		JWKsURI:                                h.c.JWKSURL(ctx).String(),
 		RevocationEndpoint:                     urlx.AppendPaths(h.c.IssuerURL(ctx), RevocationPath).String(),

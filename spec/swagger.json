@@ -3279,6 +3279,7 @@
       "required": [
         "issuer",
         "authorization_endpoint",
+        "device_authorization_endpoint",
         "token_endpoint",
         "jwks_uri",
         "subject_types_supported",
@@ -3329,6 +3330,11 @@
           "items": {
             "$ref": "#/definitions/credentialSupportedDraft00"
           }
+        },
+        "device_authorization_endpoint": {
+          "description": "OAuth 2.0 Device Authorization Endpoint URL",
+          "type": "string",
+          "example": "https://playground.ory.sh/ory-hydra/public/oauth2/device/oauth"
         },
         "end_session_endpoint": {
           "description": "OpenID Connect End-Session Endpoint\n\nURL at the OP to which an RP can perform a redirect to request that the End-User be logged out at the OP.",
