@@ -1945,39 +1945,3 @@ func newOAuth2Client(
 		Scopes: strings.Split(c.Scope, " "),
 	}
 }
-
-func newDeviceClient(
-	t *testing.T,
-	reg interface {
-		config.Provider
-		client.Registry
-	},
-	opts ...func(*client.Client),
-) (*client.Client, *oauth2.Config) {
-	ctx := context.Background()
-	c := &client.Client{
-		GrantTypes: []string{
-			"refresh_token",
-			"urn:ietf:params:oauth:grant-type:device_code",
-		},
-		Scope:                   "hydra offline openid",
-		Audience:                []string{"https://api.ory.sh/"},
-		TokenEndpointAuthMethod: "none",
-	}
-
-	// apply options
-	for _, o := range opts {
-		o(c)
-	}
-
-	require.NoError(t, reg.ClientManager().CreateClient(ctx, c))
-	return c, &oauth2.Config{
-		ClientID: c.GetID(),
-		Endpoint: oauth2.Endpoint{
-			DeviceAuthURL: reg.Config().OAuth2DeviceAuthorisationURL(ctx).String(),
-			TokenURL:      reg.Config().OAuth2TokenURL(ctx).String(),
-			AuthStyle:     oauth2.AuthStyleInHeader,
-		},
-		Scopes: strings.Split(c.Scope, " "),
-	}
-}
