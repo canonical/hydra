@@ -51,5 +51,5 @@ type FositeStorer interface {
 
 	GetDeviceCodeSessionByRequestID(ctx context.Context, requestID string, requester fosite.Session) (fosite.Requester, error)
 	UpdateDeviceCodeSessionByRequestID(ctx context.Context, requestID string, requester fosite.Requester) error
-	UpdateAndInvalidateUserCodeSession(ctx context.Context, signature, challenge_id string) (err error)
+	UpdateAndInvalidateUserCodeSessionByRequestID(ctx context.Context, signature, request_id string) (err error)
 }

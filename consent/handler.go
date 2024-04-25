@@ -1124,12 +1124,6 @@ func (h *Handler) acceptUserCodeRequest(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	err = h.r.OAuth2Storage().UpdateAndInvalidateUserCodeSession(r.Context(), userCodeSignature, f.ID)
-	if err != nil {
-		h.r.Writer().WriteError(w, r, errorsx.WithStack(fosite.ErrServerError.WithWrap(err).WithHint(`Could not invalidate 'user_code'`)))
-		return
-	}
-
 	p := flow.HandledDeviceUserAuthRequest{
 		ID:                  f.DeviceChallengeID.String(),
 		RequestedAt:         cr.RequestedAt,

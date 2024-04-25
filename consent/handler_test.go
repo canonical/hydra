@@ -424,14 +424,19 @@ func TestAcceptDuplicateDeviceRequest(t *testing.T) {
 	require.Contains(t, result.RedirectTo, requestURL)
 	require.Contains(t, result.RedirectTo, "device_verifier")
 
-	// set the HTTP method, url, and request body
 	req2, err := http.NewRequest(http.MethodPut, ts.URL+"/admin"+DevicePath+"/accept?challenge="+challenge, bytes.NewBuffer(acceptUserCodeJson))
 	if err != nil {
 		panic(err)
 	}
 	resp2, err := c.Do(req2)
 	require.NoError(t, err)
-	require.EqualValues(t, http.StatusNotFound, resp2.StatusCode)
+	require.EqualValues(t, http.StatusOK, resp2.StatusCode)
+
+	var result2 flow.OAuth2RedirectTo
+	require.NoError(t, json.NewDecoder(resp2.Body).Decode(&result2))
+	require.NotNil(t, result2.RedirectTo)
+	require.Contains(t, result2.RedirectTo, requestURL)
+	require.Contains(t, result2.RedirectTo, "device_verifier")
 }
 
 func TestAcceptCodeDeviceRequestFailure(t *testing.T) {
