@@ -100,11 +100,11 @@ jobs:
         run: |
           make .bin/go-acc
           .bin/go-acc -o coverage.out ./... -- -failfast -timeout=20m -tags sqlite,json1
-      - name: Submit to Codecov
-        run: |
-          bash <(curl -s https://codecov.io/bash)
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload Go test results
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3
+        with:
+          name: Go-results
+          path: test.json
 
   test-hsm:
     name: Run HSM tests
