@@ -1233,7 +1233,15 @@ func (s *DefaultStrategy) HandleOAuth2DeviceAuthorizationRequest(
 		ar.RequestedAudience = fosite.Arguments(deviceFlow.RequestedAudience)
 	}
 
+	// TODO(nsklikas): wrap these 2 function calls in a transaction (one persists the flow and the other invalidates the user_code)
 	consentSession, f, err := s.handleOAuth2AuthorizationRequest(ctx, w, r, ar, deviceFlow)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = s.r.OAuth2Storage().UpdateAndInvalidateUserCodeSessionByRequestID(r.Context(), string(f.DeviceCodeRequestID), f.ID)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return consentSession, f, err
 }

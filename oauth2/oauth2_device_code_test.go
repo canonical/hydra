@@ -442,7 +442,7 @@ func TestDeviceCodeWithDefaultStrategy(t *testing.T) {
 				acceptConsentHandler(t, c, subject, nil),
 			)
 
-			resp, err := getDeviceCode(t, conf, nil, oauth2.SetAuthURLParam("nonce", nonce))
+			resp, err := getDeviceCode(t, conf, nil)
 			require.NoError(t, err)
 			require.NotEmpty(t, resp.DeviceCode)
 			require.NotEmpty(t, resp.UserCode)
@@ -508,4 +508,188 @@ func TestDeviceCodeWithDefaultStrategy(t *testing.T) {
 			run(t, "opaque")
 		})
 	})
+	t.Run("case=perform flow with audience", func(t *testing.T) {
+		expectAud := "https://api.ory.sh/"
+		c, conf := newDeviceClient(t, reg)
+		testhelpers.NewDeviceLoginConsentUI(
+			t,
+			reg.Config(),
+			acceptDeviceHandler(t, c),
+			acceptLoginHandler(t, c, subject, func(r *hydra.OAuth2LoginRequest) *hydra.AcceptOAuth2LoginRequest {
+				assert.False(t, r.Skip)
+				assert.EqualValues(t, []string{expectAud}, r.RequestedAccessTokenAudience)
+				return nil
+			}),
+			acceptConsentHandler(t, c, subject, func(r *hydra.OAuth2ConsentRequest) {
+				assert.False(t, *r.Skip)
+				assert.EqualValues(t, []string{expectAud}, r.RequestedAccessTokenAudience)
+			}),
+		)
+
+		resp, err := getDeviceCode(t, conf, nil, oauth2.SetAuthURLParam("audience", "https://api.ory.sh/"))
+		require.NoError(t, err)
+		require.NotEmpty(t, resp.DeviceCode)
+		require.NotEmpty(t, resp.UserCode)
+		loginFlowResp := acceptUserCode(t, conf, nil, resp)
+		require.NotNil(t, loginFlowResp)
+
+		token, err := conf.DeviceAccessToken(context.Background(), resp)
+		require.NoError(t, err)
+
+		claims := introspectAccessToken(t, conf, token, subject)
+		aud := claims.Get("aud").Array()
+		require.Len(t, aud, 1)
+		assert.EqualValues(t, aud[0].String(), expectAud)
+
+		assertIDToken(t, token, conf, subject, nonce, time.Now().Add(reg.Config().GetIDTokenLifespan(ctx)))
+	})
+
+	t.Run("case=respects client token lifespan configuration", func(t *testing.T) {
+		run := func(t *testing.T, strategy string, c *client.Client, conf *oauth2.Config, expectedLifespans client.Lifespans) {
+			testhelpers.NewDeviceLoginConsentUI(
+				t,
+				reg.Config(),
+				acceptDeviceHandler(t, c),
+				acceptLoginHandler(t, c, subject, nil),
+				acceptConsentHandler(t, c, subject, nil),
+			)
+
+			resp, err := getDeviceCode(t, conf, nil)
+			require.NoError(t, err)
+			require.NotEmpty(t, resp.DeviceCode)
+			require.NotEmpty(t, resp.UserCode)
+			loginFlowResp := acceptUserCode(t, conf, nil, resp)
+			require.NotNil(t, loginFlowResp)
+
+			token, err := conf.DeviceAccessToken(context.Background(), resp)
+			iat := time.Now()
+			require.NoError(t, err)
+
+			body := introspectAccessToken(t, conf, token, subject)
+			requirex.EqualTime(t, iat.Add(expectedLifespans.DeviceAuthorizationGrantAccessTokenLifespan.Duration), time.Unix(body.Get("exp").Int(), 0), time.Second)
+
+			assertJWTAccessToken(t, strategy, conf, token, subject, iat.Add(expectedLifespans.DeviceAuthorizationGrantAccessTokenLifespan.Duration), `["hydra","offline","openid"]`)
+			assertIDToken(t, token, conf, subject, nonce, iat.Add(expectedLifespans.DeviceAuthorizationGrantIDTokenLifespan.Duration))
+			assertRefreshToken(t, token, conf, iat.Add(expectedLifespans.DeviceAuthorizationGrantRefreshTokenLifespan.Duration))
+
+			t.Run("followup=successfully perform refresh token flow", func(t *testing.T) {
+				require.NotEmpty(t, token.RefreshToken)
+				token.Expiry = token.Expiry.Add(-time.Hour * 24)
+				refreshedToken, err := conf.TokenSource(context.Background(), token).Token()
+				iat = time.Now()
+				require.NoError(t, err)
+				assertRefreshToken(t, refreshedToken, conf, iat.Add(expectedLifespans.RefreshTokenGrantRefreshTokenLifespan.Duration))
+				assertJWTAccessToken(t, strategy, conf, refreshedToken, subject, iat.Add(expectedLifespans.RefreshTokenGrantAccessTokenLifespan.Duration), `["hydra","offline","openid"]`)
+				assertIDToken(t, refreshedToken, conf, subject, nonce, iat.Add(expectedLifespans.RefreshTokenGrantIDTokenLifespan.Duration))
+
+				require.NotEqual(t, token.AccessToken, refreshedToken.AccessToken)
+				require.NotEqual(t, token.RefreshToken, refreshedToken.RefreshToken)
+				require.NotEqual(t, token.Extra("id_token"), refreshedToken.Extra("id_token"))
+
+				body := introspectAccessToken(t, conf, refreshedToken, subject)
+				requirex.EqualTime(t, iat.Add(expectedLifespans.RefreshTokenGrantAccessTokenLifespan.Duration), time.Unix(body.Get("exp").Int(), 0), time.Second)
+
+				t.Run("followup=original access token is no longer valid", func(t *testing.T) {
+					i := testhelpers.IntrospectToken(t, conf, token.AccessToken, adminTS)
+					assert.False(t, i.Get("active").Bool(), "%s", i)
+				})
+
+				t.Run("followup=original refresh token is no longer valid", func(t *testing.T) {
+					_, err := conf.TokenSource(context.Background(), token).Token()
+					assert.Error(t, err)
+				})
+			})
+		}
+
+		t.Run("case=custom-lifespans-active-jwt", func(t *testing.T) {
+			c, conf := newDeviceClient(t, reg)
+			ls := testhelpers.TestLifespans
+			ls.DeviceAuthorizationGrantAccessTokenLifespan = x.NullDuration{Valid: true, Duration: 6 * time.Second}
+			testhelpers.UpdateClientTokenLifespans(
+				t,
+				&oauth2.Config{ClientID: c.GetID(), ClientSecret: conf.ClientSecret},
+				c.GetID(),
+				ls, adminTS,
+			)
+			reg.Config().MustSet(ctx, config.KeyAccessTokenStrategy, "jwt")
+			run(t, "jwt", c, conf, ls)
+		})
+
+		t.Run("case=custom-lifespans-active-opaque", func(t *testing.T) {
+			c, conf := newDeviceClient(t, reg)
+			ls := testhelpers.TestLifespans
+			ls.DeviceAuthorizationGrantAccessTokenLifespan = x.NullDuration{Valid: true, Duration: 6 * time.Second}
+			testhelpers.UpdateClientTokenLifespans(
+				t,
+				&oauth2.Config{ClientID: c.GetID(), ClientSecret: conf.ClientSecret},
+				c.GetID(),
+				ls, adminTS,
+			)
+			reg.Config().MustSet(ctx, config.KeyAccessTokenStrategy, "opaque")
+			run(t, "opaque", c, conf, ls)
+		})
+
+		t.Run("case=custom-lifespans-unset", func(t *testing.T) {
+			c, conf := newDeviceClient(t, reg)
+			testhelpers.UpdateClientTokenLifespans(t, &oauth2.Config{ClientID: c.GetID(), ClientSecret: conf.ClientSecret}, c.GetID(), testhelpers.TestLifespans, adminTS)
+			testhelpers.UpdateClientTokenLifespans(t, &oauth2.Config{ClientID: c.GetID(), ClientSecret: conf.ClientSecret}, c.GetID(), client.Lifespans{}, adminTS)
+			reg.Config().MustSet(ctx, config.KeyAccessTokenStrategy, "opaque")
+
+			//goland:noinspection GoDeprecation
+			expectedLifespans := client.Lifespans{
+				AuthorizationCodeGrantAccessTokenLifespan:    x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				AuthorizationCodeGrantIDTokenLifespan:        x.NullDuration{Valid: true, Duration: reg.Config().GetIDTokenLifespan(ctx)},
+				AuthorizationCodeGrantRefreshTokenLifespan:   x.NullDuration{Valid: true, Duration: reg.Config().GetRefreshTokenLifespan(ctx)},
+				ClientCredentialsGrantAccessTokenLifespan:    x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				ImplicitGrantAccessTokenLifespan:             x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				ImplicitGrantIDTokenLifespan:                 x.NullDuration{Valid: true, Duration: reg.Config().GetIDTokenLifespan(ctx)},
+				JwtBearerGrantAccessTokenLifespan:            x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				PasswordGrantAccessTokenLifespan:             x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				PasswordGrantRefreshTokenLifespan:            x.NullDuration{Valid: true, Duration: reg.Config().GetRefreshTokenLifespan(ctx)},
+				RefreshTokenGrantIDTokenLifespan:             x.NullDuration{Valid: true, Duration: reg.Config().GetIDTokenLifespan(ctx)},
+				RefreshTokenGrantAccessTokenLifespan:         x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				RefreshTokenGrantRefreshTokenLifespan:        x.NullDuration{Valid: true, Duration: reg.Config().GetRefreshTokenLifespan(ctx)},
+				DeviceAuthorizationGrantIDTokenLifespan:      x.NullDuration{Valid: true, Duration: reg.Config().GetIDTokenLifespan(ctx)},
+				DeviceAuthorizationGrantAccessTokenLifespan:  x.NullDuration{Valid: true, Duration: reg.Config().GetAccessTokenLifespan(ctx)},
+				DeviceAuthorizationGrantRefreshTokenLifespan: x.NullDuration{Valid: true, Duration: reg.Config().GetRefreshTokenLifespan(ctx)},
+			}
+			run(t, "opaque", c, conf, expectedLifespans)
+		})
+	})
+}
+
+func newDeviceClient(
+	t *testing.T,
+	reg interface {
+		config.Provider
+		client.Registry
+	},
+	opts ...func(*client.Client),
+) (*client.Client, *oauth2.Config) {
+	ctx := context.Background()
+	c := &client.Client{
+		GrantTypes: []string{
+			"refresh_token",
+			"urn:ietf:params:oauth:grant-type:device_code",
+		},
+		Scope:                   "hydra offline openid",
+		Audience:                []string{"https://api.ory.sh/"},
+		TokenEndpointAuthMethod: "none",
+	}
+
+	// apply options
+	for _, o := range opts {
+		o(c)
+	}
+
+	require.NoError(t, reg.ClientManager().CreateClient(ctx, c))
+	return c, &oauth2.Config{
+		ClientID: c.GetID(),
+		Endpoint: oauth2.Endpoint{
+			DeviceAuthURL: reg.Config().OAuth2DeviceAuthorisationURL(ctx).String(),
+			TokenURL:      reg.Config().OAuth2TokenURL(ctx).String(),
+			AuthStyle:     oauth2.AuthStyleInHeader,
+		},
+		Scopes: strings.Split(c.Scope, " "),
+	}
 }
