@@ -53,7 +53,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
@@ -255,4 +255,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240429123227-550839b153b3
+replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20240507154459-e62ac074c345
