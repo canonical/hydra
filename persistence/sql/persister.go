@@ -184,6 +184,6 @@ func (p *Persister) mustSetNetwork(nid uuid.UUID, v interface{}) interface{} {
 	return v
 }
 
-func (p *Persister) transaction(ctx context.Context, f func(ctx context.Context, c *pop.Connection) error) error {
+func (p *Persister) Transaction(ctx context.Context, f func(ctx context.Context, c *pop.Connection) error) error {
 	return popx.Transaction(ctx, p.conn, f)
 }
