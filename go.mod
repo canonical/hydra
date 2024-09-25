@@ -13,7 +13,7 @@ replace github.com/gobuffalo/pop/v6 => github.com/ory/pop/v6 v6.2.0
 //
 // This is needed until we release the next version of the master branch, as that branch already contains the redirect URI validation fix, which
 // may be breaking for some users.
-replace github.com/ory/fosite => github.com/ory/fosite v0.47.1-0.20241101073333-eab241e153a4
+// replace github.com/ory/fosite => github.com/ory/fosite v0.47.1-0.20241101073333-eab241e153a4
 
 require (
 	github.com/ThalesIgnite/crypto11 v1.2.5
@@ -239,6 +239,7 @@ require (
 	go.opentelemetry.io/otel/exporters/zipkin v1.21.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
+	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
@@ -254,3 +255,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/ory/fosite => github.com/canonical/fosite v0.0.0-20241018095821-24db6b931174
